@@ -16,7 +16,7 @@
   --file:#0e7490; --file-bg:#d7f3fa; --file-fg:#164e63;
   --hub:#dc2626; --hub-bg:#fde3e3; --hub-fg:#7f1d1d;
   --cmd:#2563eb; --back:#16a34a; --pic:#ea580c; --fileln:#64748b;
-  --focus:#f59e0b;
+  --focus:#f59e0b; --add-bg:#dcf5e3; --del-bg:#fde2e2;
   --font-body:"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono:"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
 }
@@ -30,7 +30,7 @@
     --file:#22d3ee; --file-bg:#0b2f38; --file-fg:#cff6fd;
     --hub:#f87171; --hub-bg:#3c1515; --hub-fg:#fee2e2;
     --cmd:#60a5fa; --back:#4ade80; --pic:#fb923c; --fileln:#94a3b8;
-    --focus:#fbbf24;
+    --focus:#fbbf24; --add-bg:#12351f; --del-bg:#3d1717;
     color-scheme:dark;
   }
 }
@@ -43,11 +43,12 @@
   --file:#22d3ee; --file-bg:#0b2f38; --file-fg:#cff6fd;
   --hub:#f87171; --hub-bg:#3c1515; --hub-fg:#fee2e2;
   --cmd:#60a5fa; --back:#4ade80; --pic:#fb923c; --fileln:#94a3b8;
-  --focus:#fbbf24;
+  --focus:#fbbf24; --add-bg:#12351f; --del-bg:#3d1717;
   color-scheme:dark;
 }
 
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:17px;line-height:1.5;
   padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:20px 48px}
 .wrap{max-width:1380px;margin:0 auto;display:grid;gap:24px}
@@ -130,13 +131,49 @@ aside{position:sticky;top:calc(env(safe-area-inset-top, 0px) + 12px);display:gri
 .tip b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
 .hint{color:var(--muted);font-size:15px}
 
-/* below */
-.below{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:24px}
-@media (max-width:1060px){.below{grid-template-columns:minmax(0,1fr)}}
 .tbl{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:15.5px}
 th,td{text-align:left;vertical-align:top;padding:9px 10px;border-bottom:1px solid var(--line)}
 th{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+
+.leftcol{display:grid;gap:24px;min-width:0}
+tr.recipe-row{cursor:pointer}
+tr.recipe-row td{transition:background .15s}
+tr.recipe-row:hover td,tr.recipe-row.active td{background:var(--code-bg)}
+tr.recipe-row.active td:first-child{box-shadow:inset 4px 0 0 var(--focus)}
+tr.recipe-row:focus{outline:none}
+tr.recipe-row:focus-visible td{outline:2px solid var(--focus)}
+.chain{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.ch{display:inline-flex;align-items:center;gap:5px;border:1.5px solid var(--k);background:var(--kbg);color:var(--kfg);border-radius:999px;padding:1px 9px 1px 3px;font-size:13px;font-weight:700;white-space:nowrap}
+.ch .n{display:inline-grid;place-items:center;width:19px;height:19px;border-radius:50%;background:var(--k);color:var(--bg);font-size:11px}
+.ch.same{border-style:dashed;background:transparent}
+.chain .ar{color:var(--muted);font-size:13px}
+.flow{display:grid;justify-items:start;gap:0;margin:14px 0 6px}
+.flow .fb{display:flex;align-items:center;gap:10px;border:2px solid var(--k);background:var(--kbg);color:var(--kfg);border-radius:14px;padding:7px 12px;min-width:220px;cursor:pointer;font:inherit;text-align:left}
+.flow .fb.same{border-style:dashed;background:transparent;color:var(--fg)}
+.flow .fb .n{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--k);color:var(--bg);font-weight:700;font-size:14px;flex:none}
+.flow .fb small{display:block;font-family:var(--font-mono);font-size:11.5px;opacity:.85}
+.flow .fb:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.flow .dn{width:2px;height:16px;background:var(--line);margin-left:24px;position:relative}
+.flow .dn::after{content:"";position:absolute;left:-4px;bottom:-2px;border:5px solid transparent;border-top-color:var(--muted)}
+.flowkey{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:6px}
+.flowkey span{display:inline-flex;align-items:center;gap:6px}
+.flowkey i{width:22px;height:12px;border-radius:5px;border:2px solid var(--muted)}
+.flowkey i.d{border-style:dashed}
+.step{border-top:1px solid var(--line);padding-top:12px;margin-top:14px;scroll-margin-top:8px}
+.step-h{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.step-h .n{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--k);color:var(--bg);font-weight:700;font-size:14px;flex:none}
+.step-h b{font-size:17px}
+.tag{font-size:12px;font-weight:700;border-radius:999px;padding:1px 8px;border:1.5px dashed var(--muted);color:var(--muted)}
+.diff{font-family:var(--font-mono);font-size:12.8px;line-height:1.55;background:var(--code-bg);border:1px solid var(--line);border-radius:10px;padding:8px 0;overflow-x:auto;margin:0 0 8px}
+.diff span{display:block;white-space:pre;padding:0 12px}
+.diff .a{background:var(--add-bg)}
+.diff .d{background:var(--del-bg)}
+.diff .c{color:var(--muted)}
+.exnote{font-size:13.5px;color:var(--muted);margin:0 0 4px}
+.badge circle{fill:var(--focus)}
+.badge text{fill:#111;font:700 14px var(--font-body)}
+@media (min-width:1061px){#detail{max-height:calc(100vh - 230px);overflow:auto}}
 footer{color:var(--muted);font-size:14px}
 footer a{color:inherit}
 </style>
@@ -160,7 +197,25 @@ footer a{color:inherit}
   </section>
 
   <div class="main">
+    <div class="leftcol">
     <div class="mapbox"><svg id="map" viewBox="0 0 1080 1110" role="img" aria-label="Apertar architecture: inputs at the top, the command hub in the middle, the camera and picture outputs below"></svg></div>
+    <section class="card" id="recipes">
+      <h2>Where your change goes</h2>
+      <p class="hint" style="margin:0 0 10px">Point at a row (or tap it) to see a worked example in the panel: one step per file, top to bottom in the same order as the map.</p>
+      <div class="tbl"><table>
+        <thead><tr><th>You want to…</th><th>Files, in map order</th><th>Don't forget</th></tr></thead>
+        <tbody id="recipeRows"></tbody>
+      </table></div>
+    </section>
+    <section class="card">
+      <h2>Try ③ and ⑥ from the Mac</h2>
+      <p class="hint" style="margin:0 0 10px">The same calls the WebUI makes. Values are strings, because Core's parser is flat.</p>
+      <div class="code"><pre id="try1">curl -s -m 5 http://apertar.local:8000/api/state | grep -o '"iso":[0-9]*'</pre><button class="btn copy" type="button" data-copy="try1">Copy</button></div>
+      <p class="hint" style="margin:0 0 10px">This one changes the camera:</p>
+      <div class="code"><pre id="try2">curl -s -m 5 -X POST http://apertar.local:8000/api/command -d '{"cmd":"set_iso","value":"800"}'</pre><button class="btn copy" type="button" data-copy="try2">Copy</button></div>
+      <p class="hint" style="margin:0">Rebuild after a change: UI <code>cmake --build ~/ApertarUI/build</code>, Core <code>cmake --build ~/ApertarCore-build -j2</code>, then restart that service.</p>
+    </section>
+    </div>
 
     <aside>
       <section class="card">
@@ -175,31 +230,6 @@ footer a{color:inherit}
       </section>
       <section class="card" id="detail" aria-live="polite"></section>
     </aside>
-  </div>
-
-  <div class="below">
-    <section class="card">
-      <h2>Where your change goes</h2>
-      <div class="tbl"><table>
-        <thead><tr><th>You want to…</th><th>Edit, in arrow order</th><th>Don't forget</th></tr></thead>
-        <tbody>
-          <tr><td>Add a touch control for an existing setting</td><td><code>CameraPage.qml</code> → bridge <code>apply*()</code></td><td>The command already exists: grep <code>command.name == "set_</code> in <code>ApertarCoreApp.cpp</code></td></tr>
-          <tr><td>Add a new camera setting</td><td><code>handleCommand</code> branch → <code>CameraController::set*</code> → <code>controlsForSettings</code></td><td>State goes back in three hand-written copies: <code>settingsBody</code>, <code>settingsEvent</code>, <code>buildWebStateJson</code></td></tr>
-          <tr><td>Show it in the WebUI</td><td><code>WebControlPage.cpp</code>: <code>renderSnapshot</code>, <code>sendCommand</code></td><td>Rebuild and restart Core: the page is compiled into it</td></tr>
-          <tr><td>Map a button or encoder to it</td><td><code>handleSingleHardwareInputAction</code> + <code>normalizeAction</code> in each <code>*Input.cpp</code></td><td>Config is read once: restart Core</td></tr>
-          <tr><td>Change how the preview looks</td><td><code>PreviewWindowRenderer.cpp</code> shader + <code>CameraPreviewItem</code></td><td>Aids live in <code>UI.conf</code>, not in Core's state</td></tr>
-          <tr><td>Change what is written to disk</td><td><code>src/cdng/…</code> or the recorder in <code>CameraController.cpp</code></td><td>Never build while a take runs</td></tr>
-        </tbody>
-      </table></div>
-    </section>
-    <section class="card">
-      <h2>Try ③ and ⑥ from the Mac</h2>
-      <p class="hint" style="margin:0 0 10px">The same calls the WebUI makes. Values are strings, because Core's parser is flat.</p>
-      <div class="code"><pre id="try1">curl -s -m 5 http://apertar.local:8000/api/state | grep -o '"iso":[0-9]*'</pre><button class="btn copy" type="button" data-copy="try1">Copy</button></div>
-      <p class="hint" style="margin:0 0 10px">This one changes the camera:</p>
-      <div class="code"><pre id="try2">curl -s -m 5 -X POST http://apertar.local:8000/api/command -d '{"cmd":"set_iso","value":"800"}'</pre><button class="btn copy" type="button" data-copy="try2">Copy</button></div>
-      <p class="hint" style="margin:0">Rebuild after a change: UI <code>cmake --build ~/ApertarUI/build</code>, Core <code>cmake --build ~/ApertarCore-build -j2</code>, then restart that service.</p>
-    </section>
   </div>
 
   <footer>Code refs are against Apertar upstream-1.6.0: <a href="https://github.com/Apertar-Studio/Apertar-Core">Apertar-Core</a> and <a href="https://github.com/Apertar-Studio/Apertar-UI">Apertar-UI</a>. JSON is shortened with <code>…</code>. Paths are as on the camera (Raspberry Pi 5, user <code>pi</code>). Source: <a href="https://github.com/Tiramisioux/apertar-coding-map">github.com/Tiramisioux/apertar-coding-map</a>.</footer>
@@ -302,8 +332,8 @@ const E = [
     code:"{\"cmd\":\"set_iso\",\"id\":7,\"value\":\"800\"}",
     tip:"Values travel as strings, because Core's parser is flat. A wrong field name is not an error on the UI side, so check both ends."},
   {id:"c4",f:"BROWSER",t:"WEBPAGE",fs:"b",ts:"t",k:"cmd",n:"①",l:"click",title:"① You click in the WebUI",path:COREP+"src/web/WebControlPage.cpp",
-    what:"The page's JavaScript handles the click and calls sendCommand().",code:"sendCommand({ cmd: \"set_iso\", value: \"800\" })"},
-  {id:"c5",f:"WEBPAGE",t:"HUB",fs:"b",ts:"t",fo:-46,to:-46,k:"cmdx",n:"③",l:"POST /api/command",title:"③ HTTP POST to Core",path:"http://apertar.local:8000/api/command",
+    what:"The page's JavaScript handles the click and calls sendCommand().",code:"await sendCommand({ cmd: \"set_iso\", value: Number(value) });"},
+  {id:"c5",f:"WEBPAGE",t:"HUB",fs:"b",ts:"t",fo:-46,to:-46,lp:0.3,k:"cmdx",n:"③",l:"POST /api/command",title:"③ HTTP POST to Core",path:"http://apertar.local:8000/api/command",
     what:"handleWebCommand passes it to the same handleCommand as the socket, so the reply is the same.",
     code:"curl -s -X POST http://apertar.local:8000/api/command \\\n  -d '{\"cmd\":\"set_iso\",\"value\":\"800\"}'",
     tip:"Running this changes the camera."},
@@ -324,7 +354,7 @@ const E = [
     what:"Broadcast to every socket client at once. The UI's persistent event socket receives it.",
     code:"{\"event\":\"settings\",…,\"iso\":800,\"iso_auto\":false,…}",
     tip:"Pushed, not polled: that's why the touch screen updates at once and the WebUI up to 1 s later."},
-  {id:"s2",f:"WEBPAGE",t:"HUB",fs:"b",ts:"t",fo:46,to:46,k:"backx",n:"⑥",l:"GET /api/state · 1 s",title:"⑥ The WebUI asks for the state every second",path:"http://apertar.local:8000/api/state",
+  {id:"s2",f:"WEBPAGE",t:"HUB",fs:"b",ts:"t",fo:46,to:46,lp:0.7,k:"backx",n:"⑥",l:"GET /api/state · 1 s",title:"⑥ The WebUI asks for the state every second",path:"http://apertar.local:8000/api/state",
     what:"The arrow points at Core because the page asks. buildWebStateJson answers with fresh JSON from the camera settings, UI.conf, media, network and power.",
     code:"curl -s http://apertar.local:8000/api/state \\\n  | grep -o '\"iso\":[0-9]*'",
     tip:"Three hand-written copies of the same fields: settingsBody, settingsEvent, buildWebStateJson. A new setting goes into all three."},
@@ -481,6 +511,7 @@ function render(id){
 // focus / highlight
 let pinned=null, tour=null, step=0;
 function highlight(id){
+  clearRecipeMarks();
   svg.querySelectorAll(".on,.sel").forEach(x=>x.classList.remove("on","sel"));
   labelLayer.querySelectorAll(".lbl").forEach(l=>l.style.opacity="");
   if (!id){ svg.classList.remove("focusing"); return; }
@@ -494,20 +525,20 @@ function highlight(id){
   labelLayer.querySelectorAll(".lbl").forEach(l=>{ l.style.opacity = on.has(l.dataset.edge)?"1":".16"; });
 }
 function show(id){ highlight(id); render(id); }
-function pin(id){ endTour(false); pinned = (pinned===id)?null:id; show(pinned); }
+function pin(id){ endTour(false); pinnedRecipe=null; pinned = (pinned===id)?null:id; show(pinned); }
 
 for (const [id,g] of [...Object.entries(nodeEls),...Object.entries(edgeEls)]){
   g.addEventListener("mouseenter",()=>{ if(!tour) show(id); });
-  g.addEventListener("mouseleave",()=>{ if(!tour) show(pinned); });
+  g.addEventListener("mouseleave",()=>{ if(!tour) restore(); });
   g.addEventListener("click",()=>{ if (tour) return; pin(id); });
   g.addEventListener("keydown",ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); pin(id);} });
   g.addEventListener("focus",()=>{ if(!tour) show(id); });
 }
 labelLayer.querySelectorAll(".lbl").forEach(l=>{
   l.addEventListener("mouseenter",()=>{ if(!tour) show(l.dataset.edge); });
-  l.addEventListener("mouseleave",()=>{ if(!tour) show(pinned); });
+  l.addEventListener("mouseleave",()=>{ if(!tour) restore(); });
 });
-svg.addEventListener("click",ev=>{ if (ev.target===svg && !tour){ pinned=null; show(null);} });
+svg.addEventListener("click",ev=>{ if (ev.target===svg && !tour){ pinned=null; pinnedRecipe=null; show(null);} });
 
 // tours
 const toursEl=document.getElementById("tours"), bar=document.getElementById("stepbar");
@@ -517,7 +548,7 @@ for (const t of TOURS){
   b.addEventListener("click",()=>startTour(t.id)); toursEl.appendChild(b);
 }
 function startTour(tid){
-  tour=TOURS.find(t=>t.id===tid); step=0; pinned=null;
+  tour=TOURS.find(t=>t.id===tid); step=0; pinned=null; pinnedRecipe=null;
   toursEl.querySelectorAll(".tour").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.id===tid)));
   bar.hidden=false; goStep();
 }
@@ -573,6 +604,236 @@ document.addEventListener("click",ev=>{
   const select=()=>{ const r=document.createRange(); r.selectNodeContents(pre); const s=getSelection(); s.removeAllRanges(); s.addRange(r); done("Selected"); };
   try { navigator.clipboard.writeText(text).then(()=>done("Copied"),select); } catch(e){ select(); }
 });
+
+// ---------- "Where your change goes": worked examples ----------
+const FORK = "Written against the fork's main (Tiramisioux/Apertar-Core a40112a, Apertar-UI ea44bd7). Lines without + or − are real code, for orientation; + and − lines are the example change.";
+const RECIPES = [
+  {id:"r1", want:"Add a touch control for a setting Core already has", forget:"The command already exists: grep command.name == \"set_ in ApertarCoreApp.cpp", example:"An “ISO 800” quick button on the camera page",
+   steps:[
+    {node:"QML", file:"qml/CameraPage.qml", note:"Add the button next to the ISO dropdown. It calls the bridge method the dropdown already uses.", diff:String.raw`                 onOptionSelected: function(v) {
+                     if (root.controlBridge) {
+                         root.controlBridge.applyIso(v)
+                     …
+             }
++            Button {
++                text: "ISO 800"
++                onClicked: if (root.controlBridge) root.controlBridge.applyIso("800")
++            }`},
+    {node:"BRIDGE", same:true, file:"src/ApertarControlBridge.hpp", note:"Nothing to change: the method exists and sends set_iso.", diff:String.raw`    Q_INVOKABLE bool applyIso(const QString &displayValue);`},
+    {node:"HUB", same:true, file:"src/ApertarCoreApp.cpp", note:"Nothing to change: Core already handles set_iso.", diff:String.raw`    if (command.name == "set_iso") {
+        const auto value = command.number("value");`},
+   ]},
+  {id:"r2", want:"Add a new camera setting", forget:"The state goes back in three hand-written copies: settingsBody, settingsEvent, buildWebStateJson", example:"Sharpness, a libcamera control Apertar doesn't set yet",
+   steps:[
+    {node:"QML", file:"qml/CameraPage.qml", note:"Copy the ISO dropdown block and point it at the new property and method.", diff:String.raw`             TopDropdownStat {        // a copy of the ISO block
+-                value: root.iso
+-                options: root.isoOptions
++                value: root.controlBridge ? root.controlBridge.sharpness : ""
++                options: ["0", "1", "2", "4"]
+                 onOptionSelected: function(v) {
+-                    root.controlBridge.applyIso(v)
++                    root.controlBridge.applySharpness(v)`},
+    {node:"WEBPAGE", file:"src/web/WebControlPage.cpp", note:"Show the value and send the command, like ISO does. (Row 3 has the full WebUI step.)", diff:String.raw`       setText("isoBadge", "ISO " + isoLabel);
++      setText("sharpnessBadge", "Sharp " + snapshot.sharpness);
+ …
++      await sendCommand({ cmd: "set_sharpness", value: Number(value) });`},
+    {node:"BRIDGE", file:"src/ApertarControlBridge.hpp / .cpp", note:"A property QML can show, a method QML can call, and one line that reads Core's state.", diff:String.raw`     Q_PROPERTY(QString iso READ iso NOTIFY isoChanged)
++    Q_PROPERTY(QString sharpness READ sharpness NOTIFY sharpnessChanged)
+     Q_INVOKABLE bool applyIso(const QString &displayValue);
++    Q_INVOKABLE bool applySharpness(const QString &value);
+
++bool ApertarControlBridge::applySharpness(const QString &value)
++{
++    if (!sendCoreCommand(QStringLiteral("set_sharpness"), { { QStringLiteral("value"), value.toDouble() } }))
++        return false;
++    setSharpness(value);
++    return true;
++}
+
+ // in applyCoreState, next to setIso(…):
++        setSharpness(QString::number(state.value(QStringLiteral("sharpness")).toDouble()));`},
+    {node:"HUB", file:"src/ApertarCoreApp.cpp", note:"A branch that copies set_iso, and the field in copies 1 and 3 of the state.", diff:String.raw`+    if (command.name == "set_sharpness") {
++        const auto value = command.number("value");
++        if (!value)
++            return errorReply(command.id, "set_sharpness requires value.");
++        return camera_.setSharpness(static_cast<float>(*value))
++            ? okReply(command.id, settingsBody(camera_.settings()))
++            : errorReply(command.id, camera_.lastError());
++    }
+
+ // settingsBody (copy 1) and buildWebStateJson (copy 3):
+         << ",\"iso\":" << settings.iso
++        << ",\"sharpness\":" << settings.sharpness`},
+    {node:"CAM", file:"include/apertar/core/Types.hpp + src/camera/CameraController.cpp", note:"The field, a setter like setIso, the libcamera control, copy 2 of the state, and saving it.", diff:String.raw`     uint32_t iso = 800;
++    float sharpness = 1.0f;
+
++bool CameraController::setSharpness(float value)
++{
++    std::lock_guard<std::mutex> lock(mutex_);
++    CaptureSettings next = settings_;
++    next.sharpness = value;
++    return applySettingsLocked(next, false);   // false: control-only, no reconfigure
++}
+
+ // controlsForSettings: setting → libcamera control
++    if (controlInfoHas(controlInfo, libcamera::controls::Sharpness))
++        controls.set(libcamera::controls::Sharpness, settings.sharpness);
+
+ // settingsEvent (copy 2):
+         << ",\"iso\":" << settings.iso
++        << ",\"sharpness\":" << settings.sharpness
+
+ // writeCaptureSettings, and the matching reader below it:
+     output << prefix << "iso=" << s.iso << '\n';
++    output << prefix << "sharpness=" << s.sharpness << '\n';`},
+   ]},
+  {id:"r3", want:"Show it in the WebUI", forget:"Rebuild and restart Core: the page is compiled into it", example:"The sharpness from row 2, as a badge with a picker",
+   steps:[
+    {node:"WEBPAGE", file:"src/web/WebControlPage.cpp", note:"Three places in the one big string: the element, the render of each poll, and the command.", diff:String.raw` <!-- the page HTML: next to the ISO badge -->
++<span id="sharpnessBadge" class="badge"></span>
+
+ // renderSnapshot: runs after every 1 s poll
+       setText("isoBadge", "ISO " + isoLabel);
++      setText("sharpnessBadge", "Sharp " + snapshot.sharpness);
+
+ // the option click
+       await sendCommand({ cmd: "set_iso", value: Number(value) });
++      await sendCommand({ cmd: "set_sharpness", value: Number(value) });`},
+    {node:"HUB", file:"src/ApertarCoreApp.cpp", note:"The poll only sees fields that buildWebStateJson writes (copy 3).", diff:String.raw`  // buildWebStateJson
+         << ",\"iso\":" << settings.iso
++        << ",\"sharpness\":" << settings.sharpness`},
+   ]},
+  {id:"r4", want:"Map a button or encoder to it", forget:"The hardware file is read at start: restart Core. Upstream 1.6.0 has the names in each *Input.cpp instead", example:"An encoder that steps the sharpness",
+   steps:[
+    {node:"BTN", file:"~/apertar-hardware.conf", note:"For an action that exists (iso_up, shutter_up, record_toggle…) this is the only change.", diff:String.raw` [neorotary4]
+ enabled=true
+ encoder0_cw=iso_up
++encoder1_cw=sharpness_up
++encoder1_ccw=sharpness_down`},
+    {node:"HWIN", file:"src/hardware/ActionCatalog.hpp", note:"A new action name goes in the one list every input class reads (name, group, label, aliases).", diff:String.raw`     {"iso_up", "ISO", "ISO up", "iso_up,iso_next,iso_plus"},
++    {"sharpness_up", "Image", "Sharpness up", "sharpness_up,sharp_plus"},
++    {"sharpness_down", "Image", "Sharpness down", "sharpness_down,sharp_minus"},`},
+    {node:"HUB", file:"src/ApertarCoreApp.cpp", note:"In handleSingleHardwareInputAction, turn the action into a command. Copy the iso block above it.", diff:String.raw`     if (const auto mode = pcfSettingStepMode(action, "iso")) {
+     …
++    if (action == "sharpness_up" || action == "sharpness_down") {
++        // next value from cameraSettings.sharpness, then dispatch "set_sharpness"
++        …
++    }`},
+   ]},
+  {id:"r5", want:"Change how the preview looks", forget:"Aids live in UI.conf, not in Core's state", example:"A new aid: a centre cross",
+   steps:[
+    {node:"QML", file:"qml/CameraPage.qml", note:"Bind the preview item to the new setting, like zebra.", diff:String.raw`             zebraEnabled: root.settingsState ? root.settingsState.zebraEnabled : false
++            centerCrossEnabled: root.settingsState ? root.settingsState.centerCrossEnabled : false`},
+    {node:"UICONF", file:"src/SettingsBridge.hpp / .cpp → UI.conf", note:"A property stored in UI.conf, read at start and again when the file changes (so a WebUI change shows up).", diff:String.raw`     Q_PROPERTY(bool zebraEnabled READ zebraEnabled WRITE setZebraEnabled NOTIFY zebraEnabledChanged)
++    Q_PROPERTY(bool centerCrossEnabled READ centerCrossEnabled WRITE setCenterCrossEnabled NOTIFY centerCrossEnabledChanged)
+
+ // constructor
+     m_zebraEnabled = m_settings.value("zebraEnabled", false).toBool();
++    m_centerCrossEnabled = m_settings.value("centerCrossEnabled", false).toBool();
+
+ // pollExternalSettings
+     setZebraEnabled(m_settings.value(QStringLiteral("zebraEnabled"), m_zebraEnabled).toBool());
++    setCenterCrossEnabled(m_settings.value(QStringLiteral("centerCrossEnabled"), m_centerCrossEnabled).toBool());`},
+    {node:"RENDER", file:"src/CameraPreviewItem.hpp + src/PreviewWindowRenderer.cpp", note:"The item carries the flag to the renderer, which passes it to the shader as a uniform.", diff:String.raw`     Q_PROPERTY(bool zebraEnabled READ zebraEnabled WRITE setZebraEnabled NOTIFY zebraEnabledChanged)
++    Q_PROPERTY(bool centerCrossEnabled READ centerCrossEnabled WRITE setCenterCrossEnabled NOTIFY centerCrossEnabledChanged)
+
+ // fragment shader
+     uniform int uZebraEnabled;
++    uniform int uCenterCross;
++    // if (uCenterCross == 1 && the pixel is on the centre lines) colour = white;
+
+ // after linking the program
+         m_uZebraEnabledLoc = glGetUniformLocation(m_processProgram, "uZebraEnabled");
++        m_uCenterCrossLoc = glGetUniformLocation(m_processProgram, "uCenterCross");`},
+   ]},
+  {id:"r6", want:"Change what is written to disk", forget:"Never build while a take runs", example:"An extra DNG tag: ImageDescription (270)",
+   steps:[
+    {node:"CAM", file:"src/camera/CameraController.cpp", note:"The per-clip DNG metadata is filled here.", diff:String.raw`     out.uniqueCameraModel = uniqueCameraModelForSensor(sensorFamily, dngModel);
++    out.imageDescription = "Apertar";`},
+    {node:"RECS", file:"src/cdng/CdngEncoder.hpp / .cpp", note:"A field, and the tag in the IFD. TIFF wants tags in number order: 270 goes before 272.", diff:String.raw`         std::string uniqueCameraModel = "Blackmagic Micro Cinema Camera";
++        std::string imageDescription;
+
++        if (!metadata.imageDescription.empty())
++            appendAscii(ifd, 270, metadata.imageDescription);
+         if (!metadata.model.empty())
+             appendAscii(ifd, 272, metadata.model);`},
+    {node:"DISK", same:true, file:"/media/RAW", note:"Nothing to change. Check a frame from the Mac after a take:", diff:String.raw`exiftool -ImageDescription /Volumes/…/cDNG_…/…_000000001.dng`},
+   ]},
+];
+const nodeOrder = id => N[id].y*10000 + N[id].x;
+for (const r of RECIPES) r.steps.sort((a,b)=>nodeOrder(a.node)-nodeOrder(b.node));
+
+const kStyle = k => `--k:var(--${k});--kbg:var(--${k}-bg);--kfg:var(--${k}-fg)`;
+function chainHTML(r){
+  return `<div class="chain" aria-hidden="true">` + r.steps.map((st,i)=>{
+    const n=N[st.node];
+    return (i?`<span class="ar">→</span>`:"")+`<span class="ch${st.same?" same":""}" style="${kStyle(n.kind)}"><span class="n">${i+1}</span>${esc(n.title)}</span>`;
+  }).join("") + `</div>`;
+}
+function diffHTML(d){
+  return `<div class="diff">` + d.split("\n").map(line=>{
+    const c = line.startsWith("+") ? "a" : line.startsWith("-") ? "d" : /^\s*(\/\/|<!--)/.test(line) ? "c" : "";
+    return `<span${c?` class="${c}"`:""}>${esc(line)||" "}</span>`;
+  }).join("") + `</div>`;
+}
+
+// numbered badges on the map
+const badgeLayer = mk("g",{"aria-hidden":"true"},svg);
+function clearRecipeMarks(){
+  badgeLayer.replaceChildren();
+  document.querySelectorAll("tr.recipe-row.active").forEach(r=>r.classList.remove("active"));
+}
+
+let pinnedRecipe=null;
+function showRecipe(rid){
+  const r=RECIPES.find(x=>x.id===rid);
+  highlight(null);
+  svg.classList.add("focusing");
+  labelLayer.querySelectorAll(".lbl").forEach(l=>l.style.opacity=".16");
+  r.steps.forEach((st,i)=>{
+    const n=N[st.node]; nodeEls[st.node].classList.add("on");
+    const g=mk("g",{class:"badge"},badgeLayer);
+    const cx=n.x-n.w/2+4, cy=n.y-n.h/2+2;
+    mk("circle",{cx,cy,r:15},g);
+    mk("text",{x:cx,y:cy+5,"text-anchor":"middle"},g).textContent=String(i+1);
+  });
+  document.querySelector(`tr.recipe-row[data-recipe="${rid}"]`)?.classList.add("active");
+  detail.setAttribute("style","");
+  detail.innerHTML = `<span class="chip">How to</span>
+    <h3>${esc(r.want)}</h3>
+    <p><b>Example:</b> ${esc(r.example)}</p>
+    <div class="flowkey"><span><i></i>you edit this file</span><span><i class="d"></i>already right, nothing to edit</span></div>
+    <div class="flow">` + r.steps.map((st,i)=>{
+      const n=N[st.node];
+      return (i?`<div class="dn" aria-hidden="true"></div>`:"") +
+        `<button type="button" class="fb${st.same?" same":""}" style="${kStyle(n.kind)}" data-jump="st-${i}"><span class="n">${i+1}</span><span>${esc(n.title)}<small>${esc(st.file)}</small></span></button>`;
+    }).join("") + `</div>
+    <div class="tip"><b>Don't forget</b>${esc(r.forget)}</div>` +
+    r.steps.map((st,i)=>{
+      const n=N[st.node];
+      return `<div class="step" id="st-${i}"><div class="step-h" style="${kStyle(n.kind)}"><span class="n">${i+1}</span><b>${esc(n.title)}</b>${st.same?`<span class="tag">no change</span>`:""}</div>
+        <div class="path">${esc(st.file)}</div><p>${esc(st.note)}</p>${diffHTML(st.diff)}</div>`;
+    }).join("") + `<p class="exnote">${esc(FORK)}</p>`;
+  detail.scrollTop=0;
+}
+function restore(){ pinnedRecipe ? showRecipe(pinnedRecipe) : show(pinned); }
+detail.addEventListener("click",ev=>{
+  const b=ev.target.closest("[data-jump]"); if(!b) return;
+  document.getElementById(b.dataset.jump)?.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth", block:"start"});
+});
+
+// table rows
+const rowsEl=document.getElementById("recipeRows");
+for (const r of RECIPES){
+  const tr=document.createElement("tr"); tr.className="recipe-row"; tr.tabIndex=0; tr.dataset.recipe=r.id;
+  tr.setAttribute("aria-label",`${r.want}: show the example`);
+  tr.innerHTML=`<td>${esc(r.want)}</td><td>${chainHTML(r)}</td><td>${esc(r.forget)}</td>`;
+  const go=()=>{ if(tour) endTour(false); pinned=null; pinnedRecipe=r.id; showRecipe(r.id); };
+  tr.addEventListener("mouseenter",go);
+  tr.addEventListener("focus",go);
+  tr.addEventListener("click",()=>{ go(); if (matchMedia("(max-width:1060px)").matches) detail.scrollIntoView({block:"start"}); });
+  rowsEl.appendChild(tr);
+}
 
 render(null);
 })();
