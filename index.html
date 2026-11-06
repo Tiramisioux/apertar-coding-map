@@ -218,7 +218,7 @@ footer a{color:inherit}
     <span class="swatch"><i style="background:var(--hub-bg);border-color:var(--hub)"></i>The hub every command passes</span>
     <span class="swatch"><i style="background:var(--hw-bg);border-color:var(--hw)"></i>Hardware</span>
     <span class="swatch"><i style="background:var(--file-bg);border-color:var(--file)"></i>File on disk</span>
-    <span class="swatch forklegend"><span class="forktag" style="margin:0">fork · N</span>N commits only in Tiramisioux's fork (branch <code>cinemate-port</code>)</span>
+    <span class="swatch forklegend"><span class="forktag" style="margin:0">fork · N</span>N commits that are Tiramisioux dev-fork only (branch <code>cinemate-port</code>)</span>
     <h2 style="margin-top:8px">Line = what moves and how. Tap to show or hide</h2>
     <div class="lines" id="lineToggles"></div>
   </section>
@@ -911,7 +911,7 @@ function buildRows(){
 const SRC = {
   official: {line:'Showing <b>official Apertar</b> (Apertar-Studio, branch <code>main</code>).',
     foot:'Code is from official Apertar, branch <code>main</code>: <a href="https://github.com/Apertar-Studio/Apertar-Core">Apertar-Core</a> (<code>35dbe67</code>), <a href="https://github.com/Apertar-Studio/Apertar-UI">Apertar-UI</a> (<code>43888e5</code>) and the <a href="https://github.com/Apertar-Studio/imx585-v4l2-driver">imx585 driver</a>.'},
-  fork: {line:'Showing <b>Tiramisioux\'s fork</b>, branch <code>cinemate-port</code>. Pink <span class="forktag" style="margin:0">fork</span> marks what official Apertar doesn\'t have.',
+  fork: {line:'Showing <b>Tiramisioux\'s dev fork</b>, branch <code>cinemate-port</code>. Pink <span class="forktag" style="margin:0">fork</span> = Tiramisioux dev-fork only.',
     foot:'Code is from Tiramisioux\'s fork of Apertar, branch <code>cinemate-port</code>: <a href="https://github.com/Tiramisioux/Apertar-Core/tree/cinemate-port">Apertar-Core</a> (<code>a344376</code>), <a href="https://github.com/Tiramisioux/Apertar-UI/tree/cinemate-port">Apertar-UI</a> (<code>7029db1</code>) and the <a href="https://github.com/Tiramisioux/imx585-v4l2-driver/tree/apertar">imx585 driver</a> (branch <code>apertar</code>). Official Apertar is <a href="https://github.com/Apertar-Studio">Apertar-Studio</a>.'},
 };
 const FOOT_TAIL=' JSON is shortened with <code>…</code>. Paths are as on the camera (Raspberry Pi 5, user <code>pi</code>). Source: <a href="https://github.com/Tiramisioux/apertar-coding-map">github.com/Tiramisioux/apertar-coding-map</a>.';
