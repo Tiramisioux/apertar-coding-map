@@ -186,6 +186,13 @@ tr.recipe-row:focus-visible td{outline:2px solid var(--focus)}
 .forkbox li{margin:2px 0}
 .forkbox .d{color:var(--muted);font-size:12.5px}
 .forkbox a{color:var(--fork)}
+.srcbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-top:14px}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:12px;padding:3px;background:var(--surface);gap:3px}
+.seg button{font:inherit;font-size:15px;border:0;background:transparent;color:var(--muted);border-radius:9px;padding:6px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg);font-weight:700}
+.seg button[data-mode="fork"][aria-pressed="true"]{background:var(--fork);color:var(--bg)}
+.seg button:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+svg.official .forkpill{display:none}
 footer{color:var(--muted);font-size:14px}
 footer a{color:inherit}
 </style>
@@ -193,7 +200,14 @@ footer a{color:inherit}
 <div class="wrap">
   <header>
     <h1>Apertar coding map</h1>
-    <p>One camera, two programs. Follow an ISO change, a button press or a single frame from where it starts to where it ends. Click any box or arrow to see the file and the code. Arrow numbers ①–⑦ give the order. The code is Tiramisioux's fork, branch <code>cinemate-port</code>; pink <span class="forktag" style="margin:0">fork</span> marks what upstream Apertar doesn't have.</p>
+    <p>One camera, two programs. Follow an ISO change, a button press or a single frame from where it starts to where it ends. Click any box or arrow to see the file and the code. Arrow numbers ①–⑦ give the order.</p>
+    <div class="srcbar">
+      <div class="seg" id="srcSwitch" role="group" aria-label="Which code to show">
+        <button type="button" data-mode="official" aria-pressed="true">Official Apertar</button>
+        <button type="button" data-mode="fork" aria-pressed="false">Tiramisioux · cinemate-port</button>
+      </div>
+      <span class="hint" id="srcline"></span>
+    </div>
   </header>
 
   <section class="card legend" aria-label="Legend">
@@ -204,7 +218,7 @@ footer a{color:inherit}
     <span class="swatch"><i style="background:var(--hub-bg);border-color:var(--hub)"></i>The hub every command passes</span>
     <span class="swatch"><i style="background:var(--hw-bg);border-color:var(--hw)"></i>Hardware</span>
     <span class="swatch"><i style="background:var(--file-bg);border-color:var(--file)"></i>File on disk</span>
-    <span class="swatch"><span class="forktag" style="margin:0">fork · N</span>N commits only in Tiramisioux's fork (branch <code>cinemate-port</code>)</span>
+    <span class="swatch forklegend"><span class="forktag" style="margin:0">fork · N</span>N commits only in Tiramisioux's fork (branch <code>cinemate-port</code>)</span>
     <h2 style="margin-top:8px">Line = what moves and how. Tap to show or hide</h2>
     <div class="lines" id="lineToggles"></div>
   </section>
@@ -245,7 +259,7 @@ footer a{color:inherit}
     </aside>
   </div>
 
-  <footer>Code is from Tiramisioux's fork of Apertar, branch <code>cinemate-port</code>: <a href="https://github.com/Tiramisioux/Apertar-Core/tree/cinemate-port">Apertar-Core</a> (<code>a344376</code>), <a href="https://github.com/Tiramisioux/Apertar-UI/tree/cinemate-port">Apertar-UI</a> (<code>7029db1</code>), and the <a href="https://github.com/Tiramisioux/imx585-v4l2-driver/tree/apertar">imx585 driver</a> (branch <code>apertar</code>). Upstream is <a href="https://github.com/Apertar-Studio">Apertar-Studio</a>. JSON is shortened with <code>…</code>. Paths are as on the camera (Raspberry Pi 5, user <code>pi</code>). Source: <a href="https://github.com/Tiramisioux/apertar-coding-map">github.com/Tiramisioux/apertar-coding-map</a>.</footer>
+  <footer id="foot"></footer>
 </div>
 
 <script>
@@ -294,7 +308,7 @@ const N = {
   HWIN:{x:840,y:182,w:236,h:68,kind:"core",title:"Hardware inputs",sub:"src/hardware/*Input.cpp",path:COREP+"src/hardware/ (Pcf8574Input, NeoRotary4Input, GpioInput)",
     what:"Poll threads read I2C or GPIO and turn a press or a turn into an action name such as iso_up or record_toggle.",
     code:"rotationCallback_(action);",
-    tip:"On this fork every action name lives in ActionCatalog.hpp (fork only; upstream has a copy in each *Input.cpp). A saved apertar-hardware.conf applies without a Core restart (fork only): a controls worker restarts just the input group that changed."},
+    tip:"On this fork every action name lives in ActionCatalog.hpp (fork only; upstream has a copy in each *Input.cpp). A saved apertar-hardware.conf applies without a Core restart (fork only): a controls worker restarts just the input group that changed.",up:{tip:"Action names are normalised in each *Input.cpp (normalizeSingleAction), so a new action goes into each one. The hardware file is read once at start: restart Core after a change."}},
   BRIDGE:{x:240,y:312,w:236,h:68,kind:"ui",title:"C++ bridge",sub:"src/ApertarControlBridge.cpp",path:UIP+"src/ApertarControlBridge.cpp",
     what:"Turns a QML call into one JSON command, sends it to Core and waits for the reply. It also receives Core's events and turns them into Qt properties for QML.",
     code:"bool ApertarControlBridge::applyIso(…)       // \"Auto\" → set_iso_auto, else set_iso\nbool ApertarControlBridge::sendCoreCommand(…)  // one socket per command",
@@ -337,7 +351,7 @@ const N = {
 
 const E = [
   {id:"c1",fork:true,f:"TOUCH",t:"QML",fs:"b",ts:"t",k:"cmd",n:"①",l:"tap",title:"① You tap an option",path:UIP+"qml/TopDropdownStat.qml",
-    what:"The dropdown emits optionSelected; CameraPage handles it.",code:"onClicked: root.optionSelected(optionValue)"},
+    what:"The dropdown emits optionSelected; CameraPage handles it.",code:"onClicked: root.optionSelected(optionValue)",up:{code:"onClicked: root.optionSelected(modelData)"}},
   {id:"c2",f:"QML",t:"BRIDGE",fs:"b",ts:"t",fo:-40,to:-40,k:"cmd",n:"②",l:"applyIso()",title:"② QML calls the C++ bridge",path:UIP+"qml/CameraPage.qml",
     what:"QML can call any Q_INVOKABLE method on a bridge object. This is a plain function call inside the UI process.",code:"root.controlBridge.applyIso(v)"},
   {id:"c3",f:"BRIDGE",t:"HUB",fs:"r",ts:"l",fo:0,to:-14,k:"cmdx",n:"③",l:"socket",title:"③ One JSON line on the Unix socket",path:"/tmp/apertar-core.sock",
@@ -379,7 +393,7 @@ const E = [
     code:"void publishPreviewFrame(libcamera::Request *request)"},
   {id:"i2",fork:true,f:"SENSOR",t:"RECS",fs:"b",ts:"t",fo:50,k:"pic",l:"RAW",title:"RAW frames to the recorder",path:COREP+"src/camera/CameraController.cpp",
     what:"While recording, each RAW frame is copied into a recycled buffer and queued for the writer threads.",
-    code:"if (recordRawFrame(request, whiteBalance)) return;"},
+    code:"if (recordRawFrame(request, whiteBalance)) return;",up:{code:"recordRawFrame(request, whiteBalance);"}},
   {id:"i3",f:"RECS",t:"DISK",fs:"b",ts:"t",fo:60,k:"pic",l:"files",title:"Files on the NVMe",path:"/media/RAW",
     what:"The frame number comes from the sensor timestamp, so a dropped frame leaves a gap in the numbering.",
     code:"cDNG_yy-mm-dd_C0001/<clip>_000000001.dng"},
@@ -415,6 +429,9 @@ const TOURS = [
   {id:"zebra",name:"Zebra on from the WebUI",steps:["c4","WEBPAGE","c5","HUB","f2","UICONF","f3","RENDER"]},
 ];
 
+let MODE = (location.hash==="#fork") ? "fork" : "official";
+const val = (o,k) => (MODE==="official" && o.up && (k in o.up)) ? o.up[k] : o[k];
+const isFork = o => MODE==="fork" && !!o.fork;
 const svg = document.getElementById("map");
 const mk = (tag, attrs={}, parent) => { const e=document.createElementNS(NS,tag); for (const [k,v] of Object.entries(attrs)) e.setAttribute(k,v); if (parent) parent.appendChild(e); return e; };
 
@@ -535,9 +552,9 @@ function render(id){
     <h3>${esc(it.type==="node"?it.title:it.title)}</h3>
     ${it.path?`<div class="path">${esc(it.path)}</div>`:""}
     ${it.what?`<p>${esc(it.what)}</p>`:""}
-    ${it.code?`${it.fork?`<span class="forktag">fork only: upstream doesn't have this line</span>`:""}<div class="code"><pre id="${cid}">${esc(it.code)}</pre><button class="btn copy" type="button" data-copy="${cid}">Copy</button></div>`:""}
-    ${it.tip?`<div class="tip"><b>Good to know</b>${esc(it.tip)}</div>`:""}
-    ${it.type==="node"?forkSection(it.id):""}`;
+    ${val(it,"code")?`${isFork(it)?`<span class="forktag">fork only: upstream doesn't have this line</span>`:""}<div class="code"><pre id="${cid}">${esc(val(it,"code"))}</pre><button class="btn copy" type="button" data-copy="${cid}">Copy</button></div>`:""}
+    ${val(it,"tip")?`<div class="tip"><b>Good to know</b>${esc(val(it,"tip"))}</div>`:""}
+    ${it.type==="node"&&MODE==="fork"?forkSection(it.id):""}`;
 }
 
 // focus / highlight
@@ -638,7 +655,9 @@ document.addEventListener("click",ev=>{
 });
 
 // ---------- "Where your change goes": worked examples ----------
-const FORK = "Written against Tiramisioux's fork, branch cinemate-port (Apertar-Core a344376, Apertar-UI 7029db1). Lines without + or − are real code there; + and − lines are the example change.";
+const srcNote = () => MODE==="official"
+  ? "Written against official Apertar (Apertar-Studio main: Apertar-Core 35dbe67, Apertar-UI 43888e5). Lines without + or − are real code there; + and − lines are the example change."
+  : "Written against Tiramisioux's fork, branch cinemate-port (Apertar-Core a344376, Apertar-UI 7029db1). Lines without + or − are real code there; + and − lines are the example change.";
 const RECIPES = [
   {id:"r1", want:"Add a touch control for a setting Core already has", forget:"The command already exists: grep command.name == \"set_ in ApertarCoreApp.cpp", example:"An “ISO 800” quick button on the camera page",
    steps:[
@@ -668,7 +687,10 @@ const RECIPES = [
     {node:"WEBPAGE", fork:true, file:"src/web/WebControlPage.cpp", note:"Show the value and send the command, like ISO does. (Row 3 has the full WebUI step.)", diff:String.raw`       setText("isoBadge", "ISO " + isoLabel);
 +      setText("sharpnessBadge", "Sharp " + snapshot.sharpness);
  …
-+      await sendCommand({ cmd: "set_sharpness", value: Number(value) });`},
++      await sendCommand({ cmd: "set_sharpness", value: Number(value) });`, up:{diff:String.raw`      setText("isoBadge", snapshot.iso_auto ? "ISO Auto" : ("ISO " + isoLabel));
++      setText("sharpnessBadge", "Sharp " + snapshot.sharpness);
+ …
++      await sendCommand({ cmd: "set_sharpness", value: Number(value) });`}},
     {node:"BRIDGE", file:"src/ApertarControlBridge.hpp / .cpp", note:"A property QML can show, a method QML can call, and one line that reads Core's state.", diff:String.raw`     Q_PROPERTY(QString iso READ iso NOTIFY isoChanged)
 +    Q_PROPERTY(QString sharpness READ sharpness NOTIFY sharpnessChanged)
      Q_INVOKABLE bool applyIso(const QString &displayValue);
@@ -730,12 +752,21 @@ const RECIPES = [
 
  // the option click
        await sendCommand({ cmd: "set_iso", value: Number(value) });
-+      await sendCommand({ cmd: "set_sharpness", value: Number(value) });`},
++      await sendCommand({ cmd: "set_sharpness", value: Number(value) });`, up:{diff:String.raw` <!-- the page HTML: next to the ISO badge -->
++<span id="sharpnessBadge" class="badge"></span>
+
+ // renderSnapshot: runs after every 1 s poll
+      setText("isoBadge", snapshot.iso_auto ? "ISO Auto" : ("ISO " + isoLabel));
++      setText("sharpnessBadge", "Sharp " + snapshot.sharpness);
+
+ // the option click
+       await sendCommand({ cmd: "set_iso", value: Number(value) });
++      await sendCommand({ cmd: "set_sharpness", value: Number(value) });`}},
     {node:"HUB", file:"src/ApertarCoreApp.cpp", note:"The poll only sees fields that buildWebStateJson writes (copy 3).", diff:String.raw`  // buildWebStateJson
          << ",\"iso\":" << settings.iso
 +        << ",\"sharpness\":" << settings.sharpness`},
    ]},
-  {id:"r4", want:"Map a button or encoder to it", forget:"ActionCatalog.hpp is fork-only (upstream: each *Input.cpp). On the fork a saved hardware file applies without a Core restart; upstream needs one", example:"An encoder that steps the sharpness",
+  {id:"r4", want:"Map a button or encoder to it", forget:"ActionCatalog.hpp is fork-only (upstream: each *Input.cpp). On the fork a saved hardware file applies without a Core restart; upstream needs one", up:{forget:"A new action name goes into all three *Input.cpp files. The hardware file is read once at start: restart Core"}, example:"An encoder that steps the sharpness",
    steps:[
     {node:"BTN", file:"~/apertar-hardware.conf", note:"For an action that exists (iso_up, shutter_up, record_toggle…) this is the only change.", diff:String.raw` [neorotary4]
  enabled=true
@@ -744,7 +775,12 @@ const RECIPES = [
 +encoder1_ccw=sharpness_down`},
     {node:"HWIN", fork:true, file:"src/hardware/ActionCatalog.hpp", note:"A new action name goes in the one list every input class reads (name, group, label, aliases).", diff:String.raw`     {"iso_up", "ISO", "ISO up", "iso_up,iso_next,iso_plus"},
 +    {"sharpness_up", "Image", "Sharpness up", "sharpness_up,sharp_plus"},
-+    {"sharpness_down", "Image", "Sharpness down", "sharpness_down,sharp_minus"},`},
++    {"sharpness_down", "Image", "Sharpness down", "sharpness_down,sharp_minus"},`, up:{file:"src/hardware/GpioInput.cpp, NeoRotary4Input.cpp, Pcf8574Input.cpp", note:"Upstream keeps the action names in each input class: add the new names to normalizeSingleAction in all three files.", diff:String.raw`     if (action == "iso_up" || action == "iso_next" || action == "iso_plus")
+         return "iso_up";
++    if (action == "sharpness_up" || action == "sharp_plus")
++        return "sharpness_up";
++    if (action == "sharpness_down" || action == "sharp_minus")
++        return "sharpness_down";`}},
     {node:"HUB", file:"src/ApertarCoreApp.cpp", note:"In handleSingleHardwareInputAction, turn the action into a command. Copy the iso block above it.", diff:String.raw`     if (const auto mode = pcfSettingStepMode(action, "iso")) {
      …
 +    if (action == "sharpness_up" || action == "sharpness_down") {
@@ -799,7 +835,7 @@ const kStyle = k => `--k:var(--${k});--kbg:var(--${k}-bg);--kfg:var(--${k}-fg)`;
 function chainHTML(r){
   return `<div class="chain" aria-hidden="true">` + r.steps.map((st,i)=>{
     const n=N[st.node];
-    return (i?`<span class="ar">→</span>`:"")+`<span class="ch${st.same?" same":""}" style="${kStyle(n.kind)}"><span class="n">${i+1}</span>${esc(n.title)}${st.fork?`<span class="fdot" title="fork only">fork</span>`:""}</span>`;
+    return (i?`<span class="ar">→</span>`:"")+`<span class="ch${st.same?" same":""}" style="${kStyle(n.kind)}"><span class="n">${i+1}</span>${esc(n.title)}${isFork(st)?`<span class="fdot" title="fork only">fork</span>`:""}</span>`;
   }).join("") + `</div>`;
 }
 function diffHTML(d){
@@ -838,14 +874,14 @@ function showRecipe(rid){
     <div class="flow">` + r.steps.map((st,i)=>{
       const n=N[st.node];
       return (i?`<div class="dn" aria-hidden="true"></div>`:"") +
-        `<button type="button" class="fb${st.same?" same":""}" style="${kStyle(n.kind)}" data-jump="st-${i}"><span class="n">${i+1}</span><span>${esc(n.title)}${st.fork?` <span class="fdot">fork</span>`:""}<small>${esc(st.file)}</small></span></button>`;
+        `<button type="button" class="fb${st.same?" same":""}" style="${kStyle(n.kind)}" data-jump="st-${i}"><span class="n">${i+1}</span><span>${esc(n.title)}${isFork(st)?` <span class="fdot">fork</span>`:""}<small>${esc(val(st,"file"))}</small></span></button>`;
     }).join("") + `</div>
-    <div class="tip"><b>Don't forget</b>${esc(r.forget)}</div>` +
+    <div class="tip"><b>Don't forget</b>${esc(val(r,"forget"))}</div>` +
     r.steps.map((st,i)=>{
       const n=N[st.node];
-      return `<div class="step" id="st-${i}"><div class="step-h" style="${kStyle(n.kind)}"><span class="n">${i+1}</span><b>${esc(n.title)}</b>${st.same?`<span class="tag">no change</span>`:""}${st.fork?`<span class="forktag">fork only</span>`:""}</div>
-        <div class="path">${esc(st.file)}</div><p>${esc(st.note)}</p>${diffHTML(st.diff)}</div>`;
-    }).join("") + `<p class="exnote">${esc(FORK)}</p>`;
+      return `<div class="step" id="st-${i}"><div class="step-h" style="${kStyle(n.kind)}"><span class="n">${i+1}</span><b>${esc(n.title)}</b>${st.same?`<span class="tag">no change</span>`:""}${isFork(st)?`<span class="forktag">fork only</span>`:""}</div>
+        <div class="path">${esc(val(st,"file"))}</div><p>${esc(val(st,"note"))}</p>${diffHTML(val(st,"diff"))}</div>`;
+    }).join("") + `<p class="exnote">${esc(srcNote())}</p>`;
   detail.scrollTop=0;
 }
 function restore(){ pinnedRecipe ? showRecipe(pinnedRecipe) : show(pinned); }
@@ -856,18 +892,48 @@ detail.addEventListener("click",ev=>{
 
 // table rows
 const rowsEl=document.getElementById("recipeRows");
-for (const r of RECIPES){
-  const tr=document.createElement("tr"); tr.className="recipe-row"; tr.tabIndex=0; tr.dataset.recipe=r.id;
-  tr.setAttribute("aria-label",`${r.want}: show the example`);
-  tr.innerHTML=`<td>${esc(r.want)}</td><td>${chainHTML(r)}</td><td>${esc(r.forget)}</td>`;
-  const go=()=>{ if(tour) endTour(false); pinned=null; pinnedRecipe=r.id; showRecipe(r.id); };
-  tr.addEventListener("mouseenter",go);
-  tr.addEventListener("focus",go);
-  tr.addEventListener("click",()=>{ go(); if (matchMedia("(max-width:1060px)").matches) detail.scrollIntoView({block:"start"}); });
-  rowsEl.appendChild(tr);
+function buildRows(){
+  rowsEl.replaceChildren();
+  for (const r of RECIPES){
+    const tr=document.createElement("tr"); tr.className="recipe-row"; tr.tabIndex=0; tr.dataset.recipe=r.id;
+    tr.setAttribute("aria-label",`${r.want}: show the example`);
+    tr.innerHTML=`<td>${esc(r.want)}</td><td>${chainHTML(r)}</td><td>${esc(val(r,"forget"))}</td>`;
+    const go=()=>{ if(tour) endTour(false); pinned=null; pinnedRecipe=r.id; showRecipe(r.id); };
+    tr.addEventListener("mouseenter",go);
+    tr.addEventListener("focus",go);
+    tr.addEventListener("click",()=>{ go(); if (matchMedia("(max-width:1060px)").matches) detail.scrollIntoView({block:"start"}); });
+    if (r.id===pinnedRecipe) tr.classList.add("active");
+    rowsEl.appendChild(tr);
+  }
 }
 
+// official / fork switch
+const SRC = {
+  official: {line:'Showing <b>official Apertar</b> (Apertar-Studio, branch <code>main</code>).',
+    foot:'Code is from official Apertar, branch <code>main</code>: <a href="https://github.com/Apertar-Studio/Apertar-Core">Apertar-Core</a> (<code>35dbe67</code>), <a href="https://github.com/Apertar-Studio/Apertar-UI">Apertar-UI</a> (<code>43888e5</code>) and the <a href="https://github.com/Apertar-Studio/imx585-v4l2-driver">imx585 driver</a>.'},
+  fork: {line:'Showing <b>Tiramisioux\'s fork</b>, branch <code>cinemate-port</code>. Pink <span class="forktag" style="margin:0">fork</span> marks what official Apertar doesn\'t have.',
+    foot:'Code is from Tiramisioux\'s fork of Apertar, branch <code>cinemate-port</code>: <a href="https://github.com/Tiramisioux/Apertar-Core/tree/cinemate-port">Apertar-Core</a> (<code>a344376</code>), <a href="https://github.com/Tiramisioux/Apertar-UI/tree/cinemate-port">Apertar-UI</a> (<code>7029db1</code>) and the <a href="https://github.com/Tiramisioux/imx585-v4l2-driver/tree/apertar">imx585 driver</a> (branch <code>apertar</code>). Official Apertar is <a href="https://github.com/Apertar-Studio">Apertar-Studio</a>.'},
+};
+const FOOT_TAIL=' JSON is shortened with <code>…</code>. Paths are as on the camera (Raspberry Pi 5, user <code>pi</code>). Source: <a href="https://github.com/Tiramisioux/apertar-coding-map">github.com/Tiramisioux/apertar-coding-map</a>.';
+function setMode(m){
+  MODE=m;
+  document.querySelectorAll("#srcSwitch button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.mode===m)));
+  svg.classList.toggle("official",m==="official");
+  document.getElementById("srcline").innerHTML=SRC[m].line;
+  document.getElementById("foot").innerHTML=SRC[m].foot+FOOT_TAIL;
+  document.querySelectorAll(".forklegend").forEach(e=>e.hidden = m==="official");
+  buildRows();
+  if (tour) goStep(); else restore();
+}
+document.querySelectorAll("#srcSwitch button").forEach(b=>b.addEventListener("click",()=>{
+  setMode(b.dataset.mode);
+  try { history.replaceState(null,"",m2hash(b.dataset.mode)); } catch(e){}
+}));
+const m2hash = m => m==="fork" ? "#fork" : location.pathname + location.search;
+window.addEventListener("hashchange",()=>setMode(location.hash==="#fork"?"fork":"official"));
+
 render(null);
+setMode(MODE);
 })();
 </script>
 

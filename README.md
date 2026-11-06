@@ -1,6 +1,6 @@
 # Apertar coding map
 
-An interactive map of the [Apertar](https://github.com/Apertar-Studio) camera software (Tiramisioux's fork), for people who
+An interactive map of the [Apertar](https://github.com/Apertar-Studio) camera software, for people who
 want to change the code: which program owns what, how a command and a picture travel, and which file to
 open for each step.
 
@@ -20,15 +20,16 @@ open for each step.
 - **Follow a flow:** step through ISO 800 from the touch screen or the WebUI, an encoder turn, one
   frame, or a zebra toggle.
 
-- **Pink `fork` tags** mark what only Tiramisioux's fork has: per box, the number of fork-only
-  commits touching its files (with the newest ones and a compare link), and code lines or example
-  steps that upstream doesn't have.
+- **Switch between official Apertar and Tiramisioux's fork.** Official
+  ([Apertar-Studio](https://github.com/Apertar-Studio), branch `main`) is the default. The fork is
+  branch `cinemate-port` of [Apertar-Core](https://github.com/Tiramisioux/Apertar-Core/tree/cinemate-port)
+  and [Apertar-UI](https://github.com/Tiramisioux/Apertar-UI/tree/cinemate-port), plus the
+  [imx585 driver](https://github.com/Tiramisioux/imx585-v4l2-driver/tree/apertar) (branch `apertar`);
+  link to it with `#fork`. Code lines and examples that differ swap with the switch. On the fork side,
+  pink `fork` tags show per box how many commits official Apertar doesn't have (newest five and a
+  compare link in the panel), and mark fork-only code lines and example steps.
 
-The code shown is from Tiramisioux's fork, branch `cinemate-port`
-([Apertar-Core](https://github.com/Tiramisioux/Apertar-Core/tree/cinemate-port),
-[Apertar-UI](https://github.com/Tiramisioux/Apertar-UI/tree/cinemate-port)), and the
-[imx585 driver](https://github.com/Tiramisioux/imx585-v4l2-driver/tree/apertar) (branch `apertar`).
-Upstream is [Apertar-Studio](https://github.com/Apertar-Studio). JSON examples are shortened with `…`.
+JSON examples are shortened with `…`.
 
 ## Files
 
