@@ -1,6 +1,6 @@
 # Apertar coding map
 
-An interactive map of the [Apertar](https://github.com/Apertar-Studio) camera software, for people who
+An interactive map of the [Apertar](https://github.com/Apertar-Studio) camera software (Tiramisioux's fork), for people who
 want to change the code: which program owns what, how a command and a picture travel, and which file to
 open for each step.
 
@@ -20,7 +20,15 @@ open for each step.
 - **Follow a flow:** step through ISO 800 from the touch screen or the WebUI, an encoder turn, one
   frame, or a zebra toggle.
 
-Code references are against Apertar upstream 1.6.0. JSON examples are shortened with `…`.
+- **Pink `fork` tags** mark what only Tiramisioux's fork has: per box, the number of fork-only
+  commits touching its files (with the newest ones and a compare link), and code lines or example
+  steps that upstream doesn't have.
+
+The code shown is from Tiramisioux's fork, branch `cinemate-port`
+([Apertar-Core](https://github.com/Tiramisioux/Apertar-Core/tree/cinemate-port),
+[Apertar-UI](https://github.com/Tiramisioux/Apertar-UI/tree/cinemate-port)), and the
+[imx585 driver](https://github.com/Tiramisioux/imx585-v4l2-driver/tree/apertar) (branch `apertar`).
+Upstream is [Apertar-Studio](https://github.com/Apertar-Studio). JSON examples are shortened with `…`.
 
 ## Files
 
