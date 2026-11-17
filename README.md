@@ -24,7 +24,7 @@ open for each step.
   ([Apertar-Studio](https://github.com/Apertar-Studio), branch `main`) is the default. The fork is
   branch `cinemate-port` of [Apertar-Core](https://github.com/Tiramisioux/Apertar-Core/tree/cinemate-port)
   and [Apertar-UI](https://github.com/Tiramisioux/Apertar-UI/tree/cinemate-port), plus the
-  [imx585 driver](https://github.com/Tiramisioux/imx585-v4l2-driver/tree/apertar) (branch `apertar`);
+  [imx585 driver](https://github.com/Tiramisioux/imx585-v4l2-driver/tree/cinemate-port) (branch `cinemate-port`);
   link to it with `#fork`. Code lines and examples that differ swap with the switch. On the fork side,
   pink `fork` tags show per box how many commits official Apertar doesn't have (newest five and a
   compare link in the panel), and mark fork-only code lines and example steps.
