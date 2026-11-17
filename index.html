@@ -376,7 +376,7 @@ const E = [
     what:"A function call inside Core. The reply to the sender carries the new settings.",
     code:"return camera_.setIso(static_cast<uint32_t>(*value))\n    ? okReply(command.id, settingsBody(camera_.settings()))\n    : errorReply(command.id, camera_.lastError());"},
   {id:"c9",f:"CAM",t:"SENSOR",fs:"b",ts:"t",k:"cmd",n:"⑤",l:"controls",title:"⑤ New controls go to libcamera",path:COREP+"src/camera/CameraController.cpp",
-    what:"The controls are merged into the next request that goes back to libcamera, so the change lands about one frame later.",
+    what:"The controls are merged into the next request that goes back to libcamera, so they leave Core within one frame. When the picture shows the change is up to libcamera and the sensor.",
     code:"request->controls().merge(pendingControls_);"},
   {id:"s1",f:"CAM",t:"BRIDGE",fs:"l",ts:"b",fo:-10,to:40,k:"backx",n:"⑥",l:"settings event",title:"⑥ Core pushes a settings event",path:"/tmp/apertar-core.sock",
     what:"Broadcast to every socket client at once. The UI's persistent event socket receives it.",
@@ -874,7 +874,8 @@ const RECIPES = [
      const bool needsProcessing = state.zebraEnabled
 +                                 || state.invertPreviewEnabled
      …
-+        glUniform1i(m_uInvertPreviewLoc, state.invertPreviewEnabled ? 1 : 0);`},
+         glUniform1i(planarTexture ? m_uZebraEnabledPlanarLoc : (cpuTexture ? m_uZebraEnabled2DLoc : m_uZebraEnabledLoc), state.zebraEnabled ? 1 : 0);
++        glUniform1i(planarTexture ? m_uInvertPreviewPlanarLoc : (cpuTexture ? m_uInvertPreview2DLoc : m_uInvertPreviewLoc), state.invertPreviewEnabled ? 1 : 0);`},
    ]},
   {id:"r6", want:"Change what is written to disk", forget:"Never build while a take runs", example:"An extra DNG tag: Artist (315)",
    steps:[
