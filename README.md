@@ -27,7 +27,9 @@ open for each step.
   [imx585 driver](https://github.com/Tiramisioux/imx585-v4l2-driver/tree/cinemate-port) (branch `cinemate-port`);
   link to it with `#fork`. Code lines and examples that differ swap with the switch. On the fork side,
   pink `fork` tags show per box how many commits official Apertar doesn't have (newest five and a
-  compare link in the panel), and mark fork-only code lines and example steps.
+  compare link in the panel), and mark fork-only code lines and example steps. A fork camera with two
+  sensors also runs a second Core for cam1; the map shows it as one dashed box next to the hub. How that
+  Core starts has its own page: [Dual sensor startup](dual-sensor.html).
 
 JSON examples are shortened with `…`.
 
