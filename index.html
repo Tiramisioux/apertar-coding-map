@@ -81,6 +81,7 @@ code{font-size:.88em;background:var(--code-bg);padding:1px 5px;border-radius:5px
 .node .t1{fill:var(--kfg);font:700 17px var(--font-body)}
 .node .t2{fill:var(--kfg);font:400 12px var(--font-mono);opacity:.85}
 .node:focus{outline:none}
+.node.forkonly .shape{stroke-dasharray:7 4}
 .node:focus-visible .shape,.node.sel .shape{stroke:var(--focus);stroke-width:4}
 .edge{cursor:pointer}
 .edge .hit{stroke:transparent;stroke-width:18;fill:none}
@@ -89,6 +90,7 @@ code{font-size:.88em;background:var(--code-bg);padding:1px 5px;border-radius:5px
 .edge:focus{outline:none}
 .edge:focus-visible .lbl rect{stroke:var(--focus);stroke-width:3}
 .lbl rect{fill:var(--surface);stroke:var(--line);stroke-width:1}
+.lbl.forkonly rect{stroke:var(--fork)}
 .lbl text{fill:var(--fg);font:600 13px var(--font-body)}
 .k-cmd .ln,.k-cmdx .ln{stroke:var(--cmd)}
 .k-back .ln,.k-backx .ln{stroke:var(--back)}
@@ -123,6 +125,7 @@ aside{position:sticky;top:calc(env(safe-area-inset-top, 0px) + 12px);display:gri
 #detail .chip{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;letter-spacing:.02em;border-radius:999px;padding:3px 11px;border:1.5px solid var(--k,var(--line));color:var(--kfg,var(--fg));background:var(--kbg,var(--bg))}
 #detail h3{font-size:23px;line-height:1.2;margin:10px 0 8px;text-wrap:balance}
 #detail p{margin:0 0 12px}
+#detail .more a{color:var(--fg);font-weight:700}
 #detail .path{font-family:var(--font-mono);font-size:13.5px;color:var(--muted);word-break:break-all;margin-bottom:12px}
 .code{position:relative;margin:0 0 12px}
 .code pre{margin:0;background:var(--code-bg);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13.5px;line-height:1.55;overflow-x:auto;white-space:pre}
@@ -192,7 +195,7 @@ tr.recipe-row:focus-visible td{outline:2px solid var(--focus)}
 .seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg);font-weight:700}
 .seg button[data-mode="fork"][aria-pressed="true"]{background:var(--fork);color:var(--bg)}
 .seg button:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
-svg.official .forkpill{display:none}
+svg.official .forkpill,svg.official .forkonly{display:none}
 footer{color:var(--muted);font-size:14px}
 footer a{color:inherit}
 </style>
@@ -469,7 +472,7 @@ function anchor(n,side,off=0){
 // nodes
 const nodeEls={};
 for (const [id,n] of Object.entries(N)){
-  const g = mk("g",{class:"node",tabindex:"0",role:"button","aria-label":`${n.title}${n.sub?", "+n.sub:""}`,"data-id":id,
+  const g = mk("g",{class:"node"+(n.forkOnly?" forkonly":""),tabindex:"0",role:"button","aria-label":`${n.title}${n.sub?", "+n.sub:""}`,"data-id":id,
     style:`--k:var(--${n.kind});--kbg:var(--${n.kind}-bg);--kfg:var(--${n.kind}-fg)`},nodeLayer);
   const x0=n.x-n.w/2, y0=n.y-n.h/2;
   if (n.shape==="hex"){
@@ -504,14 +507,14 @@ for (const e of E){
   const k=Math.min(150,Math.max(34,d*0.42));
   const c1=[p0[0]+n0[0]*k,p0[1]+n0[1]*k], c2=[p3[0]+n3[0]*(k+6),p3[1]+n3[1]*(k+6)];
   const dpath=`M${p0} C${c1} ${c2} ${p3}`;
-  const g = mk("g",{class:`edge k-${e.k}`,tabindex:"0",role:"button","aria-label":e.title,"data-id":e.id},edgeLayer);
+  const g = mk("g",{class:`edge k-${e.k}${e.forkOnly?" forkonly":""}`,tabindex:"0",role:"button","aria-label":e.title,"data-id":e.id},edgeLayer);
   mk("path",{class:"hit",d:dpath},g);
   const ln = mk("path",{class:"ln",d:dpath,"marker-end":`url(#m-${e.k})`},g);
   edgeEls[e.id]=g;
   const text = [e.n,e.l].filter(Boolean).join(" ");
   if (text){
     const len=ln.getTotalLength(); const mid=ln.getPointAtLength(len*(e.lp||0.5));
-    const lg = mk("g",{class:"lbl"},g);
+    const lg = mk("g",{class:"lbl"+(e.forkOnly?" forkonly":"")},g);
     const r = mk("rect",{rx:8},lg);
     const t = mk("text",{x:mid.x,y:mid.y+4.5,"text-anchor":"middle"},lg); t.textContent=text;
     const bb=t.getBBox(); r.setAttribute("x",bb.x-7); r.setAttribute("y",bb.y-3); r.setAttribute("width",bb.width+14); r.setAttribute("height",bb.height+6);
@@ -554,10 +557,11 @@ function render(id){
   }
   const cid="code"+(++codeSeq);
   detail.setAttribute("style",style);
-  detail.innerHTML = `<span class="chip">${esc(chip)}</span>
+  detail.innerHTML = `<span class="chip">${esc(chip)}</span>${MODE==="fork"&&it.forkOnly?` <span class="forktag">fork only: official Apertar has no such ${it.type==="node"?"box":"arrow"}</span>`:""}
     <h3>${esc(it.type==="node"?it.title:it.title)}</h3>
     ${it.path?`<div class="path">${esc(it.path)}</div>`:""}
     ${val(it,"what")?`<p>${esc(val(it,"what"))}</p>`:""}
+    ${it.link?`<p class="more"><a href="${esc(it.link.href)}">${esc(it.link.text)}</a></p>`:""}
     ${val(it,"code")?`${isFork(it)?`<span class="forktag">fork only: upstream doesn't have this line</span>`:""}<div class="code"><pre id="${cid}">${esc(val(it,"code"))}</pre><button class="btn copy" type="button" data-copy="${cid}">Copy</button></div>`:""}
     ${val(it,"tip")?`<div class="tip"><b>Good to know</b>${esc(val(it,"tip"))}</div>`:""}
     ${it.type==="node"&&MODE==="fork"?forkSection(it.id):""}`;
@@ -602,6 +606,8 @@ for (const t of TOURS){
   const b=document.createElement("button"); b.className="tour"; b.type="button"; b.textContent=t.name; b.setAttribute("aria-pressed","false"); b.dataset.id=t.id;
   b.addEventListener("click",()=>startTour(t.id)); toursEl.appendChild(b);
 }
+// a tour that only exists on the fork is hidden in official mode
+const showTours=()=>toursEl.querySelectorAll(".tour").forEach(b=>{ b.hidden = MODE==="official" && !!TOURS.find(t=>t.id===b.dataset.id).forkOnly; });
 function startTour(tid){
   tour=TOURS.find(t=>t.id===tid); step=0; pinned=null; pinnedRecipe=null;
   toursEl.querySelectorAll(".tour").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.id===tid)));
@@ -962,6 +968,7 @@ const rowsEl=document.getElementById("recipeRows");
 function buildRows(){
   rowsEl.replaceChildren();
   for (const r of RECIPES){
+    if (r.forkOnly && MODE==="official") continue;
     const tr=document.createElement("tr"); tr.className="recipe-row"; tr.tabIndex=0; tr.dataset.recipe=r.id;
     tr.setAttribute("aria-label",`${r.want}: show the example`);
     tr.innerHTML=`<td>${esc(r.want)}</td><td>${chainHTML(r)}</td><td>${esc(val(r,"forget"))}</td>`;
@@ -978,7 +985,7 @@ function buildRows(){
 const SRC = {
   official: {line:'Showing <b>official Apertar</b> (Apertar-Studio, branch <code>main</code>).',
     foot:'Code is from official Apertar, branch <code>main</code>: <a href="https://github.com/Apertar-Studio/Apertar-Core">Apertar-Core</a> (<code>35dbe67</code>), <a href="https://github.com/Apertar-Studio/Apertar-UI">Apertar-UI</a> (<code>43888e5</code>) and the <a href="https://github.com/Apertar-Studio/imx585-v4l2-driver">imx585 driver</a>.'},
-  fork: {line:'Showing <b>Tiramisioux\'s dev fork</b>, branch <code>cinemate-port</code>. Pink <span class="forktag" style="margin:0">fork</span> = Tiramisioux dev-fork only.',
+  fork: {line:'Showing <b>Tiramisioux\'s dev fork</b>, branch <code>cinemate-port</code>. Pink <span class="forktag" style="margin:0">fork</span> = Tiramisioux dev-fork only. A dashed box or arrow is not in official Apertar at all.',
     foot:'Code is from Tiramisioux\'s fork of Apertar, branch <code>cinemate-port</code>: <a href="https://github.com/Tiramisioux/Apertar-Core/tree/cinemate-port">Apertar-Core</a> (<code>4f1621a</code>), <a href="https://github.com/Tiramisioux/Apertar-UI/tree/cinemate-port">Apertar-UI</a> (<code>41da93a</code>) and the <a href="https://github.com/Tiramisioux/imx585-v4l2-driver/tree/cinemate-port">imx585 driver</a> (branch <code>cinemate-port</code>). Official Apertar is <a href="https://github.com/Apertar-Studio">Apertar-Studio</a>.'},
 };
 const FOOT_TAIL=' JSON is shortened with <code>…</code>. Paths are as on the camera (Raspberry Pi 5, user <code>pi</code>). Source: <a href="https://github.com/Tiramisioux/apertar-coding-map">github.com/Tiramisioux/apertar-coding-map</a>.';
@@ -989,6 +996,12 @@ function setMode(m){
   document.getElementById("srcline").innerHTML=SRC[m].line;
   document.getElementById("foot").innerHTML=SRC[m].foot+FOOT_TAIL;
   document.querySelectorAll(".forklegend").forEach(e=>e.hidden = m==="official");
+  if (m==="official"){   // what is open must exist there
+    if (tour?.forkOnly) endTour(false);
+    if (pinned && (N[pinned]||E.find(x=>x.id===pinned)).forkOnly) pinned=null;
+    if (pinnedRecipe && RECIPES.find(x=>x.id===pinnedRecipe).forkOnly) pinnedRecipe=null;
+  }
+  showTours();
   buildRows();
   if (tour) goStep(); else restore();
 }
