@@ -236,7 +236,7 @@ footer a{color:inherit}
     </section>
     <section class="card">
       <h2>Try ③ and ⑥ from the Mac</h2>
-      <p class="hint" style="margin:0 0 10px">The same calls the WebUI makes. Values are strings, because Core's parser is flat.</p>
+      <p class="hint" style="margin:0 0 10px">The same calls the WebUI makes. Core's parser is flat and keeps every value as text, so "800" and 800 both work.</p>
       <div class="code"><pre id="try1">curl -s -m 5 http://apertar.local:8000/api/state | grep -o '"iso":[0-9]*'</pre><button class="btn copy" type="button" data-copy="try1">Copy</button></div>
       <p class="hint" style="margin:0 0 10px">This one changes the camera:</p>
       <div class="code"><pre id="try2">curl -s -m 5 -X POST http://apertar.local:8000/api/command -d '{"cmd":"set_iso","value":"800"}'</pre><button class="btn copy" type="button" data-copy="try2">Copy</button></div>
@@ -296,7 +296,7 @@ const N = {
   BROWSER:{x:540,y:52,w:190,h:52,shape:"pill",kind:"web",title:"Browser",sub:"you click",
     what:"Core serves the WebUI on port 8000. Open it on a phone or laptop.", code:"http://apertar.local:8000"},
   BTN:{x:840,y:52,w:200,h:52,shape:"pill",kind:"hw",title:"Buttons / encoders",sub:"you press or turn",
-    what:"PCF8574 buttons, NeoRotary4 encoders and GPIO buttons. Core polls them itself; the UI is not involved."},
+    what:"PCF8574 buttons, NeoRotary4 encoders and GPIO buttons. Core reads them itself; the UI is not involved."},
   QML:{x:240,y:182,w:236,h:68,kind:"ui",title:"Screens (QML)",sub:"qml/CameraPage.qml",path:UIP+"qml/CameraPage.qml",
     what:"The camera page. A tapped option calls a method on a C++ bridge object.",
     code:"root.controlBridge.applyIso(v)",
@@ -304,47 +304,48 @@ const N = {
   WEBPAGE:{x:540,y:182,w:236,h:68,kind:"web",title:"WebUI page",sub:"src/web/WebControlPage.cpp",path:COREP+"src/web/WebControlPage.cpp",
     what:"The whole WebUI (HTML, CSS and JS) is one C++ string compiled into Core. The page sends commands with POST and asks for the state every second.",
     code:"window.setInterval(() => fetchState(true), 1000);",
-    tip:"A WebUI change needs a Core rebuild and a Core restart. The file is about 12k lines: grep for an anchor, never read it whole."},
+    tip:"A WebUI change needs a Core rebuild and a Core restart. The file is about 21k lines: grep for an anchor, never read it whole.",up:{tip:"A WebUI change needs a Core rebuild and a Core restart. The file is about 12k lines: grep for an anchor, never read it whole."}},
   HWIN:{x:840,y:182,w:236,h:68,kind:"core",title:"Hardware inputs",sub:"src/hardware/*Input.cpp",path:COREP+"src/hardware/ (Pcf8574Input, NeoRotary4Input, GpioInput)",
-    what:"Poll threads read I2C or GPIO and turn a press or a turn into an action name such as iso_up or record_toggle.",
+    what:"Input threads read I2C or GPIO and turn a press or a turn into an action name such as iso_up or record_toggle.",
     code:"rotationCallback_(action);",
-    tip:"On this fork every action name lives in ActionCatalog.hpp (fork only; upstream has a copy in each *Input.cpp). A saved apertar-hardware.conf applies without a Core restart (fork only): a controls worker restarts just the input group that changed.",up:{tip:"Action names are normalised in each *Input.cpp (normalizeSingleAction), so a new action goes into each one. The hardware file is read once at start: restart Core after a change."}},
+    tip:"On this fork every action name lives in ActionCatalog.hpp (fork only; upstream has a copy in GpioInput.cpp, NeoRotary4Input.cpp and Pcf8574Input.cpp). A saved apertar-hardware.conf applies without a Core restart (fork only): a controls worker restarts just the input group that changed.",up:{tip:"GpioInput.cpp, NeoRotary4Input.cpp and Pcf8574Input.cpp each hold their own copy of the alias table (normalizeSingleAction); a name they do not list passes through unchanged. What an action does is a branch in handleSingleHardwareInputAction (ApertarCoreApp.cpp), so a new action goes there. The hardware file is read once at start: restart Core after a change."}},
   BRIDGE:{x:240,y:312,w:236,h:68,kind:"ui",title:"C++ bridge",sub:"src/ApertarControlBridge.cpp",path:UIP+"src/ApertarControlBridge.cpp",
     what:"Turns a QML call into one JSON command, sends it to Core and waits for the reply. It also receives Core's events and turns them into Qt properties for QML.",
-    code:"bool ApertarControlBridge::applyIso(…)       // \"Auto\" → set_iso_auto, else set_iso\nbool ApertarControlBridge::sendCoreCommand(…)  // one socket per command",
-    tip:"sendCoreCommand blocks the GUI thread until Core replies: up to 3 s, 60 s for record_stop."},
+    code:"bool ApertarControlBridge::applyIso(…)       // \"Auto\" → set_iso_auto, \"Lock\" → set_iso_auto enabled=false, else set_iso\nbool ApertarControlBridge::sendCoreCommand(…)  // one socket per command",
+    tip:"sendCoreCommand blocks the GUI thread until Core replies: up to 3 s, 10 s for a command that reconfigures the camera (set_resolution, set_record_format, …), 60 s for record_stop.",
+    up:{code:"bool ApertarControlBridge::applyIso(…)       // \"Auto\" → set_iso_auto, else set_iso\nbool ApertarControlBridge::sendCoreCommand(…)  // one socket per command"}},
   HUB:{x:540,y:432,w:270,h:80,shape:"hex",kind:"hub",title:"handleCommand",sub:"src/ApertarCoreApp.cpp",path:COREP+"src/ApertarCoreApp.cpp",
-    what:"Every command from every entry point ends up here. One long function, one if-branch per command, guarded by commandMutex_.",
+    what:"Every command from every entry point ends up here. One long function with one if-branch per command. Every command that changes something runs under commandMutex_.",
     code:"if (command.name == \"set_iso\") {",
-    tip:"List all commands: grep -n 'command.name == \"' ApertarCoreApp.cpp. Use the chapter map in llm/core-map.md; never read the file whole."},
+    tip:"List all commands: grep -n 'command.name == \"' ApertarCoreApp.cpp. Use the chapter map in the knowledge base (~/apertar-kb/llm/core-map.md); never read the file whole."},
   CAM:{x:540,y:562,w:266,h:68,kind:"core",title:"Camera",sub:"src/camera/CameraController.cpp",path:COREP+"src/camera/CameraController.cpp",
-    what:"Holds the capture settings and talks to libcamera. ISO, shutter, WB and fps are control-only; resolution, format and bit depth need a full reconfigure.",
+    what:"Holds the capture settings and talks to libcamera. ISO, shutter and WB are control-only, and fps normally is too. Resolution, bit depth and a switch between RAW and H.264/ProRes need a full reconfigure.",
     code:"// ISO → AnalogueGain in controlsForSettings\nstd::max(1.0f, static_cast<float>(settings.iso) / 100.0f)",
-    tip:"Settings are also saved to ~/.config/apertar-core/camera_settings.conf, 25 ms after the last change."},
+    tip:"Settings are also saved to ~/.config/apertar-core/camera_settings.conf, about 25 ms after a change."},
   UICONF:{x:92,y:562,w:136,h:72,shape:"cyl",kind:"file",title:"UI.conf",sub:"~/.config/CinePi",path:"~/.config/CinePi/UI.conf",
     what:"INI file for UI-side settings: aids, photo, audio. The UI writes it, Core writes it for WebUI changes, and the UI watches it.",
     code:"[General]\nzebraEnabled=true",
     tip:"A change through this file sends no event. If a WebUI toggle doesn't show on the touch screen, look here first."},
   SENSOR:{x:540,y:684,w:210,h:62,kind:"hw",title:"IMX585 sensor",sub:"libcamera + driver",path:"~/drivers/imx585-v4l2-driver",
     what:"The IMX585 on its V4L2 driver, run by libcamera and the PiSP ISP. Sensor modes come from the driver.",
-    tip:"New controls land one request after they are set, about one frame."},
+    tip:"New controls ride on the next request Core hands back to libcamera, so they leave Core within one frame. When the picture changes is up to libcamera and the sensor: other requests are already queued and the sensor applies gain and exposure with its own delay."},
   PUB:{x:380,y:806,w:236,h:68,kind:"core",title:"Preview out",sub:"publishPreviewFrame()",path:COREP+"src/ApertarCoreApp.cpp (publishPreviewFrame, streamMjpeg)",
     what:"Two outputs from the same preview frames: dma-buf handles for the touch UI (no copy) and a small JPEG stream for browsers.",
     code:"controlServer_.broadcastWithFds(out.str(), attachedFds);",
-    tip:"Only the newest frame is kept. A slow reader skips frames instead of queueing them."},
-  RECS:{x:720,y:806,w:266,h:68,kind:"core",title:"Recorders",sub:"src/cdng · mlv · prores · video",path:COREP+"src/cdng/, src/mlv/, src/prores/, src/video/",
-    what:"One recorder per format: cDNG and lossy DNG (frame by frame, worker threads), MLV, H.264, ProRes. Audio is a WAV beside the clip.",
+    tip:"Only the newest frame is kept, so the publisher and a slow browser skip frames instead of queueing them. A socket client that stops reading is disconnected: Core never waits for a reader."},
+  RECS:{x:720,y:806,w:266,h:68,kind:"core",title:"Recorders",sub:"src/cdng · mlv · prores · video",path:COREP+"src/camera/CameraController.cpp (DngRecordingQueue) + encoders in src/cdng/, src/lossydng/, src/mlv/, src/prores/, src/video/",
+    what:"One encoder per format, each in its own folder: cDNG, lossy DNG, MLV, H.264, ProRes. DngRecordingQueue in CameraController.cpp runs the worker threads for cDNG, lossy DNG and MLV. Audio is a WAV beside the clip.",
     code:"encoder.writeDngFile(job.path, job.frame, job.metadata);",
     tip:"When the DNG queue is full a frame is dropped, and the log says ApertarCore drop[queue-full]."},
   RENDER:{x:240,y:936,w:256,h:68,kind:"ui",title:"Preview drawing",sub:"src/PreviewWindowRenderer.cpp",path:UIP+"src/PreviewWindowRenderer.cpp",
     what:"Imports Core's frame as a GPU texture and draws it under the QML scene, with the aids (zebra, peaking, false colour, LUT) as shaders.",
     code:"if (uZebraEnabled == 1 && exposureLuma >= uZebraThreshold)",
-    tip:"The aids exist only here. The WebUI picture has none."},
+    tip:"The WebUI draws its own copy of zebra, peaking, false colour and greyscale in the browser: a WebGL shader inside WebControlPage.cpp. A change to an aid goes into both files. The LUT is drawn only here."},
   BROWSEROUT:{x:560,y:936,w:200,h:58,shape:"pill",kind:"web",title:"Browser",sub:"shows the picture",
     what:"The WebUI shows a JPEG stream of at most 640×360, made only while someone is watching."},
   DISK:{x:860,y:936,w:150,h:76,shape:"cyl",kind:"file",title:"/media/RAW",sub:"NVMe",path:"/media/RAW",
     what:"The NVMe on the CFexpress hat, mounted by apertar-cfe-automounter.",
-    tip:"Core checks neither the mount nor free space before recording. With nothing mounted, files land on the SD card."},
+    tip:"On this fork Core refuses record_start when nothing is mounted at /media/RAW, the card was pulled or less than 1 GB is free, and the reply says why (mediaGateError, fork only).",up:{tip:"Core checks neither the mount nor free space before recording. With nothing mounted, files land on the SD card."}},
   SCREEN:{x:240,y:1056,w:210,h:58,shape:"pill",kind:"ui",title:"Touch screen",sub:"shows the picture",
     what:"What you see. The UI process draws straight to the display (DRM/KMS), with no window manager."},
 };
@@ -356,8 +357,8 @@ const E = [
     what:"QML can call any Q_INVOKABLE method on a bridge object. This is a plain function call inside the UI process.",code:"root.controlBridge.applyIso(v)"},
   {id:"c3",f:"BRIDGE",t:"HUB",fs:"r",ts:"l",fo:0,to:-14,k:"cmdx",n:"③",l:"socket",title:"③ One JSON line on the Unix socket",path:"/tmp/apertar-core.sock",
     what:"A newline-terminated JSON line. Core answers with the same id: ok plus the new settings.",
-    code:"{\"cmd\":\"set_iso\",\"id\":7,\"value\":\"800\"}",
-    tip:"Values travel as strings, because Core's parser is flat. A wrong field name is not an error on the UI side, so check both ends."},
+    code:"{\"cmd\":\"set_iso\",\"id\":7,\"value\":800}",
+    tip:"Core's parser is flat: one level, every value kept as text. So 800 and \"800\" both work, and nested objects or arrays do not. A wrong field name is not an error on the UI side, so check both ends."},
   {id:"c4",f:"BROWSER",t:"WEBPAGE",fs:"b",ts:"t",k:"cmd",n:"①",l:"click",title:"① You click in the WebUI",path:COREP+"src/web/WebControlPage.cpp",
     what:"The page's JavaScript handles the click and calls sendCommand().",code:"await sendCommand({ cmd: \"set_iso\", value: Number(value) });"},
   {id:"c5",f:"WEBPAGE",t:"HUB",fs:"b",ts:"t",fo:-46,to:-46,lp:0.3,k:"cmdx",n:"③",l:"POST /api/command",title:"③ HTTP POST to Core",path:"http://apertar.local:8000/api/command",
@@ -375,14 +376,14 @@ const E = [
     what:"A function call inside Core. The reply to the sender carries the new settings.",
     code:"return camera_.setIso(static_cast<uint32_t>(*value))\n    ? okReply(command.id, settingsBody(camera_.settings()))\n    : errorReply(command.id, camera_.lastError());"},
   {id:"c9",f:"CAM",t:"SENSOR",fs:"b",ts:"t",k:"cmd",n:"⑤",l:"controls",title:"⑤ New controls go to libcamera",path:COREP+"src/camera/CameraController.cpp",
-    what:"The controls are merged into the next request that goes back to libcamera, so the change lands about one frame later.",
+    what:"The controls are merged into the next request that goes back to libcamera, so they leave Core within one frame. When the picture shows the change is up to libcamera and the sensor.",
     code:"request->controls().merge(pendingControls_);"},
   {id:"s1",f:"CAM",t:"BRIDGE",fs:"l",ts:"b",fo:-10,to:40,k:"backx",n:"⑥",l:"settings event",title:"⑥ Core pushes a settings event",path:"/tmp/apertar-core.sock",
     what:"Broadcast to every socket client at once. The UI's persistent event socket receives it.",
     code:"{\"event\":\"settings\",…,\"iso\":800,\"iso_auto\":false,…}",
     tip:"Pushed, not polled: that's why the touch screen updates at once and the WebUI up to 1 s later."},
   {id:"s2",f:"WEBPAGE",t:"HUB",fs:"b",ts:"t",fo:46,to:46,lp:0.7,k:"backx",n:"⑥",l:"GET /api/state · 1 s",title:"⑥ The WebUI asks for the state every second",path:"http://apertar.local:8000/api/state",
-    what:"The arrow points at Core because the page asks. buildWebStateJson answers with fresh JSON from the camera settings, UI.conf, media, network and power.",
+    what:"The arrow points at Core because the page asks. This request skips handleCommand: handleWebRequest calls buildWebStateJson, which answers with fresh JSON from the camera settings, UI.conf, media, network and power.",
     code:"curl -s http://apertar.local:8000/api/state \\\n  | grep -o '\"iso\":[0-9]*'",
     tip:"Three hand-written copies of the same fields: settingsBody, settingsEvent, buildWebStateJson. A new setting goes into all three."},
   {id:"s3",f:"BRIDGE",t:"QML",fs:"t",ts:"b",fo:40,to:40,k:"back",n:"⑦",l:"isoChanged",title:"⑦ A Qt property updates the screen",path:UIP+"qml/CameraPage.qml",
@@ -392,11 +393,11 @@ const E = [
     what:"Every completed libcamera request: the preview stream goes to the publisher.",
     code:"void publishPreviewFrame(libcamera::Request *request)"},
   {id:"i2",fork:true,f:"SENSOR",t:"RECS",fs:"b",ts:"t",fo:50,k:"pic",l:"RAW",title:"RAW frames to the recorder",path:COREP+"src/camera/CameraController.cpp",
-    what:"While recording, each RAW frame is copied into a recycled buffer and queued for the writer threads.",
-    code:"if (recordRawFrame(request, whiteBalance)) return;",up:{code:"recordRawFrame(request, whiteBalance);"}},
+    what:"While recording, each RAW frame is handed to a copy worker, which copies it into a recycled buffer, gives the camera buffer back and queues the copy for the writer threads.",
+    code:"if (recordRawFrame(request, whiteBalance)) return;",up:{code:"recordRawFrame(request, whiteBalance);",what:"While recording, each RAW frame is copied into a recycled buffer and queued for the writer threads."}},
   {id:"i3",f:"RECS",t:"DISK",fs:"b",ts:"t",fo:60,k:"pic",l:"files",title:"Files on the NVMe",path:"/media/RAW",
-    what:"The frame number comes from the sensor timestamp, so a dropped frame leaves a gap in the numbering.",
-    code:"cDNG_yy-mm-dd_C0001/<clip>_000000001.dng"},
+    what:"The frame number comes from the sensor timestamp, so a dropped frame leaves a gap in the numbering. During an fps speed ramp frames are counted instead.",
+    code:"cDNG_yy-mm-dd_C0001/<clip>_000000001.dng",up:{what:"The frame number comes from the sensor timestamp, so a dropped frame leaves a gap in the numbering."}},
   {id:"i4",f:"PUB",t:"RENDER",fs:"b",ts:"t",fo:-50,to:50,k:"pic",l:"dma-buf",title:"Preview to the UI, no copy",path:"/tmp/apertar-core.sock (SCM_RIGHTS)",
     what:"File descriptors travel over the same Unix socket. The UI turns them into a GPU texture with eglCreateImageKHR.",
     code:"{\"event\":\"preview_buffer\",…} + fds   // once per buffer\n{\"event\":\"preview_frame\",\"slot\":2,…} // every frame",
@@ -417,7 +418,7 @@ const E = [
     code:"QFileSystemWatcher::fileChanged → pollExternalSettings()"},
 ];
 
-const FORKDATA = {"QML": {"repo": "Apertar-UI", "count": 15, "recent": [["7029db1", "2026-10-29", "ui: UI timecode and file timecode are set apart (Settings), the tap changes the UI one", true], ["c716dec", "2026-10-28", "ui: compression is greyed out while the Mode Ladder is active", true], ["35b31f6", "2026-10-28", "ui: values the camera decides are italic, not green", true], ["682a186", "2026-10-28", "qml: ISO Auto offered everywhere but Clear HDR", true], ["7840438", "2026-10-28", "ui: auto values are white; cap green only when the camera added it", true]]}, "BRIDGE": {"repo": "Apertar-UI", "count": 8, "recent": [["7029db1", "2026-10-29", "ui: UI timecode and file timecode are set apart (Settings), the tap changes the UI one", true], ["c716dec", "2026-10-28", "ui: compression is greyed out while the Mode Ladder is active", true], ["7840438", "2026-10-28", "ui: auto values are white; cap green only when the camera added it", true], ["ed0d7b5", "2026-10-28", "ui: pickers follow the value lists, greyed above the ceiling (T33)", true], ["f1edf96", "2026-10-28", "ui: values the camera sets are green; ISO list follows iso_max; ISO lock", true]]}, "RENDER": {"repo": "Apertar-UI", "count": 0, "recent": []}, "UICONF": {"repo": "Apertar-UI", "count": 2, "recent": [["da2a9b5", "2026-10-28", "ui: recording frame and red timecode switches", true], ["ed0d7b5", "2026-10-28", "ui: pickers follow the value lists, greyed above the ceiling (T33)", true]]}, "WEBPAGE": {"repo": "Apertar-Core", "count": 80, "recent": [["c810f85", "2026-11-04", "web: the frame-rate phase lock on the System pane's Performance card", true], ["e625c68", "2026-11-04", "camera: a Preview temporal denoise switch, off by default", true], ["ce0bd90", "2026-11-04", "media: a switch for the drive trim (set_media_trim, default on) and a Performance card", true], ["9b5ea14", "2026-11-04", "web: a GPIO button can be remote only; pins a DPI display holds are greyed", true], ["b64e6f6", "2026-11-03", "web: the GPIO out row gets a Remove, like the input rows", true]]}, "HWIN": {"repo": "Apertar-Core", "count": 18, "recent": [["9b5ea14", "2026-11-04", "web: a GPIO button can be remote only; pins a DPI display holds are greyed", true], ["2a4266e", "2026-11-01", "web: Boot Config marks the lines the card sets, and where your own go", true], ["3b87d99", "2026-11-01", "web: Boot Config card edits config.txt as text too (Edit file)", true], ["f19b245", "2026-11-01", "config.txt engine: read and edit the Apertar-standard boot config in place", true], ["d44b177", "2026-10-31", "drop-frames: trim the recording drive, Log, a switchable RAM write buffer with a safety stop, a buffer bar, fps max from the sensor, storage pre-roll", true]]}, "HUB": {"repo": "Apertar-Core", "count": 69, "recent": [["e625c68", "2026-11-04", "camera: a Preview temporal denoise switch, off by default", true], ["ce0bd90", "2026-11-04", "media: a switch for the drive trim (set_media_trim, default on) and a Performance card", true], ["9b5ea14", "2026-11-04", "web: a GPIO button can be remote only; pins a DPI display holds are greyed", true], ["1319967", "2026-11-03", "web: Remote controls card and Try buttons run a control's saved action", true], ["2edc6d0", "2026-11-02", "config: a media tuning file ~/apertar-media-tune.conf with a test-night override", true]]}, "CAM": {"repo": "Apertar-Core", "count": 71, "recent": [["f4a1393", "2026-11-04", "camera: phase lock pins {d, d+1} so the line length stays fixed", true], ["e625c68", "2026-11-04", "camera: a Preview temporal denoise switch, off by default", true], ["ce0bd90", "2026-11-04", "media: a switch for the drive trim (set_media_trim, default on) and a Performance card", true], ["31d5418", "2026-11-03", "camera: Clear HDR 16-bit on the IMX585 runs to the driver's maximum fps (no 25 cap)", true], ["2edc6d0", "2026-11-02", "config: a media tuning file ~/apertar-media-tune.conf with a test-night override", true]]}, "RECS": {"repo": "Apertar-Core", "count": 16, "recent": [["2edc6d0", "2026-11-02", "config: a media tuning file ~/apertar-media-tune.conf with a test-night override", true], ["adac040", "2026-11-01", "cdng: drop a DNG's pages after the fsync by default (APERTAR_DNG_DONTNEED=sync)", true], ["5e9dd1a", "2026-11-01", "mlv: declare the same black and white level as the cDNG of the take, at every bit depth", true], ["766aba8", "2026-11-01", "rec, web, cdng: fixes from the review of the seven commits above", true], ["0ed07ea", "2026-11-01", "cdng, rec: APERTAR_DNG_DONTNEED chooses when a DNG's pages leave the page cache; dropped_copy_slot in the stats line", true]]}, "SENSOR": {"repo": "imx585-v4l2-driver", "count": 1, "recent": [["e5b74d3", "2026-10-25", "imx585: aspect-ratio crop modes, as shipped on the Apertar-Beta 1.6.0 image", true]], "branch": "apertar"}};
+const FORKDATA = {"QML": {"repo": "Apertar-UI", "count": 24, "recent": [["68e1a41", "2026-11-01", "qml: the dropped-frames chip shows the number of dropped frames", true], ["e061be8", "2026-11-01", "drop-frames: the audio meter outline is red only while recording", true], ["5697b54", "2026-11-01", "drop-frames: faint red outline on the audio meter when sound is recorded, with a switch", true], ["606f137", "2026-11-01", "drop-frames: Clip names card in Settings > Record", true], ["96a7aa4", "2026-11-01", "drop-frames: record button and pill during a safety-stop flush", true]]}, "BRIDGE": {"repo": "Apertar-UI", "count": 12, "recent": [["68e1a41", "2026-11-01", "qml: the dropped-frames chip shows the number of dropped frames", true], ["606f137", "2026-11-01", "drop-frames: Clip names card in Settings > Record", true], ["841d0ed", "2026-10-31", "drop-frames: buffer bar, safety-stop pill, Frames / RAM, Log and storage pre-roll", true], ["ea44bd7", "2026-10-30", "ui: a Controls chip on the camera page and a read-only Controls card", true], ["7029db1", "2026-10-29", "ui: UI timecode and file timecode are set apart (Settings), the tap changes the UI one", true]]}, "RENDER": {"repo": "Apertar-UI", "count": 8, "recent": [["c153c33", "2026-11-02", "ui: drop APERTAR_PREVIEW_PEAKING=fast (park it on drop-count)", true], ["1c7a3ad", "2026-11-02", "ui: drop APERTAR_PREVIEW_DIRECT (a no-op with hdmi_external_only)", true], ["b333343", "2026-11-02", "ui: drop APERTAR_PREVIEW_PEAKING=cpu (park it on drop-count)", true], ["010f8ad", "2026-11-02", "ui: drop APERTAR_PREVIEW_PLANE (park it on preview-plane)", true], ["c13b846", "2026-11-01", "ui: APERTAR_PREVIEW_PLANE shows the live picture on the DRM primary plane", true]]}, "UICONF": {"repo": "Apertar-UI", "count": 4, "recent": [["5697b54", "2026-11-01", "drop-frames: faint red outline on the audio meter when sound is recorded, with a switch", true], ["841d0ed", "2026-10-31", "drop-frames: buffer bar, safety-stop pill, Frames / RAM, Log and storage pre-roll", true], ["da2a9b5", "2026-10-28", "ui: recording frame and red timecode switches", true], ["ed0d7b5", "2026-10-28", "ui: pickers follow the value lists, greyed above the ceiling (T33)", true]]}, "WEBPAGE": {"repo": "Apertar-Core", "count": 82, "recent": [["ba0658d", "2026-11-08", "media: a merge worker flattens split clips while the camera is idle", true], ["d7dd337", "2026-11-08", "cdng: split a take into part folders with [storage] frames_per_folder", true], ["c810f85", "2026-11-04", "web: the frame-rate phase lock on the System pane's Performance card", true], ["e625c68", "2026-11-04", "camera: a Preview temporal denoise switch, off by default", true], ["ce0bd90", "2026-11-04", "media: a switch for the drive trim (set_media_trim, default on) and a Performance card", true]]}, "HWIN": {"repo": "Apertar-Core", "count": 20, "recent": [["ba0658d", "2026-11-08", "media: a merge worker flattens split clips while the camera is idle", true], ["d7dd337", "2026-11-08", "cdng: split a take into part folders with [storage] frames_per_folder", true], ["9b5ea14", "2026-11-04", "web: a GPIO button can be remote only; pins a DPI display holds are greyed", true], ["2a4266e", "2026-11-01", "web: Boot Config marks the lines the card sets, and where your own go", true], ["3b87d99", "2026-11-01", "web: Boot Config card edits config.txt as text too (Edit file)", true]]}, "HUB": {"repo": "Apertar-Core", "count": 73, "recent": [["01f170c", "2026-11-08", "media: read the clip merge switch before the worker's first scan", true], ["68516f1", "2026-11-08", "media: rescan for split clips after a merge pauses", true], ["ba0658d", "2026-11-08", "media: a merge worker flattens split clips while the camera is idle", true], ["d7dd337", "2026-11-08", "cdng: split a take into part folders with [storage] frames_per_folder", true], ["e625c68", "2026-11-04", "camera: a Preview temporal denoise switch, off by default", true]]}, "CAM": {"repo": "Apertar-Core", "count": 73, "recent": [["ba0658d", "2026-11-08", "media: a merge worker flattens split clips while the camera is idle", true], ["d7dd337", "2026-11-08", "cdng: split a take into part folders with [storage] frames_per_folder", true], ["f4a1393", "2026-11-04", "camera: phase lock pins {d, d+1} so the line length stays fixed", true], ["e625c68", "2026-11-04", "camera: a Preview temporal denoise switch, off by default", true], ["ce0bd90", "2026-11-04", "media: a switch for the drive trim (set_media_trim, default on) and a Performance card", true]]}, "RECS": {"repo": "Apertar-Core", "count": 18, "recent": [["ba0658d", "2026-11-08", "media: a merge worker flattens split clips while the camera is idle", true], ["d7dd337", "2026-11-08", "cdng: split a take into part folders with [storage] frames_per_folder", true], ["2edc6d0", "2026-11-02", "config: a media tuning file ~/apertar-media-tune.conf with a test-night override", true], ["adac040", "2026-11-01", "cdng: drop a DNG's pages after the fsync by default (APERTAR_DNG_DONTNEED=sync)", true], ["5e9dd1a", "2026-11-01", "mlv: declare the same black and white level as the cDNG of the take, at every bit depth", true]]}, "SENSOR": {"repo": "imx585-v4l2-driver", "count": 50, "recent": [["cd548ef", "2026-11-01", "docs: README clone URL and branch, and the Bookworm config.txt path", true], ["56de0cc", "2026-11-01", "docs: add APERTAR.md, the install and mode guide for Apertar users", true], ["97649ba", "2026-11-01", "imx585: set the geometry controls read-only in their config, not after creation", true], ["c18f162", "2026-11-01", "imx585: log the per-mode HMAX/VMAX table at debug level", true], ["24172e6", "2026-10-26", "imx585: report each mode's sensor window as its crop rectangle", true]], "branch": "cinemate-port"}};
 const GH = {"Apertar-Core":"https://github.com/Tiramisioux/Apertar-Core","Apertar-UI":"https://github.com/Tiramisioux/Apertar-UI","imx585-v4l2-driver":"https://github.com/Tiramisioux/imx585-v4l2-driver"};
 const UP = {"Apertar-Core":"https://github.com/Apertar-Studio/Apertar-Core","Apertar-UI":"https://github.com/Apertar-Studio/Apertar-UI","imx585-v4l2-driver":"https://github.com/Apertar-Studio/imx585-v4l2-driver"};
 
@@ -552,7 +553,7 @@ function render(id){
   detail.innerHTML = `<span class="chip">${esc(chip)}</span>
     <h3>${esc(it.type==="node"?it.title:it.title)}</h3>
     ${it.path?`<div class="path">${esc(it.path)}</div>`:""}
-    ${it.what?`<p>${esc(it.what)}</p>`:""}
+    ${val(it,"what")?`<p>${esc(val(it,"what"))}</p>`:""}
     ${val(it,"code")?`${isFork(it)?`<span class="forktag">fork only: upstream doesn't have this line</span>`:""}<div class="code"><pre id="${cid}">${esc(val(it,"code"))}</pre><button class="btn copy" type="button" data-copy="${cid}">Copy</button></div>`:""}
     ${val(it,"tip")?`<div class="tip"><b>Good to know</b>${esc(val(it,"tip"))}</div>`:""}
     ${it.type==="node"&&MODE==="fork"?forkSection(it.id):""}`;
@@ -658,33 +659,39 @@ document.addEventListener("click",ev=>{
 // ---------- "Where your change goes": worked examples ----------
 const srcNote = () => MODE==="official"
   ? "Written against official Apertar (Apertar-Studio main: Apertar-Core 35dbe67, Apertar-UI 43888e5). Lines without + or − are real code there; + and − lines are the example change."
-  : "Written against Tiramisioux's fork, branch cinemate-port (Apertar-Core f4a1393, Apertar-UI 7029db1). Lines without + or − are real code there; + and − lines are the example change.";
+  : "Written against Tiramisioux's fork, branch cinemate-port (Apertar-Core 01f170c, Apertar-UI 7ea9afc). Lines without + or − are real code there; + and − lines are the example change.";
 const RECIPES = [
   {id:"r1", want:"Add a touch control for a setting Core already has", forget:"The command already exists: grep command.name == \"set_ in ApertarCoreApp.cpp", example:"An “ISO 800” quick button on the camera page",
    steps:[
-    {node:"QML", file:"qml/CameraPage.qml", note:"Add the button next to the ISO dropdown. It calls the bridge method the dropdown already uses.", diff:String.raw`                 onOptionSelected: function(v) {
+    {node:"QML", file:"qml/CameraPage.qml", note:"Add a button under the top row (the row is full). It calls the bridge method the ISO dropdown already uses. Apertar's own button is ActionTile: this page does not import QtQuick.Controls.", diff:String.raw`                 onOptionSelected: function(v) {
                      if (root.controlBridge) {
                          root.controlBridge.applyIso(v)
                      …
-             }
-+            Button {
-+                text: "ISO 800"
-+                onClicked: if (root.controlBridge) root.controlBridge.applyIso("800")
-+            }`},
+         }   // end of the top Row
++        ActionTile {
++            x: root.topControlsSideMargin
++            y: root.topControlsTopMargin + root.topStatHeight + 8
++            label: "ISO 800"
++            onClicked: if (root.controlBridge) root.controlBridge.applyIso("800")
++        }`},
     {node:"BRIDGE", same:true, file:"src/ApertarControlBridge.hpp", note:"Nothing to change: the method exists and sends set_iso.", diff:String.raw`    Q_INVOKABLE bool applyIso(const QString &displayValue);`},
     {node:"HUB", same:true, file:"src/ApertarCoreApp.cpp", note:"Nothing to change: Core already handles set_iso.", diff:String.raw`    if (command.name == "set_iso") {
         const auto value = command.number("value");`},
    ]},
   {id:"r2", want:"Add a new camera setting", forget:"The state goes back in three hand-written copies: settingsBody, settingsEvent, buildWebStateJson", example:"Sharpness, a libcamera control Apertar doesn't set yet",
    steps:[
-    {node:"QML", file:"qml/CameraPage.qml", note:"Copy the ISO dropdown block and point it at the new property and method.", diff:String.raw`             TopDropdownStat {        // a copy of the ISO block
+    {node:"QML", file:"qml/CameraPage.qml", note:"Copy the ISO dropdown block and point it at the new property and method. Give it its own dropdown key instead of \"iso\", drop any displayValue/valueItalic lines, and change the /4 widths to /5: the row is full.", diff:String.raw`             TopDropdownStat {        // a copy of the ISO block
 -                value: root.iso
 -                options: root.isoOptions
 +                value: root.controlBridge ? root.controlBridge.sharpness : ""
 +                options: ["0", "1", "2", "4"]
                  onOptionSelected: function(v) {
--                    root.controlBridge.applyIso(v)
-+                    root.controlBridge.applySharpness(v)`},
+                     if (root.controlBridge) {
+-                        root.controlBridge.applyIso(v)
++                        root.controlBridge.applySharpness(v)
+-                    } else {
+-                        root.iso = v
+                     }`},
     {node:"WEBPAGE", fork:true, file:"src/web/WebControlPage.cpp", note:"Show the value and send the command, like ISO does. (Row 3 has the full WebUI step.)", diff:String.raw`       setText("isoBadge", "ISO " + isoLabel);
 +      setText("sharpnessBadge", "Sharp " + snapshot.sharpness);
  …
@@ -692,10 +699,18 @@ const RECIPES = [
 +      setText("sharpnessBadge", "Sharp " + snapshot.sharpness);
  …
 +      await sendCommand({ cmd: "set_sharpness", value: Number(value) });`}},
-    {node:"BRIDGE", file:"src/ApertarControlBridge.hpp / .cpp", note:"A property QML can show, a method QML can call, and one line that reads Core's state.", diff:String.raw`     Q_PROPERTY(QString iso READ iso NOTIFY isoChanged)
+    {node:"BRIDGE", file:"src/ApertarControlBridge.hpp / .cpp", note:"A property QML can show (getter, signal, setter and member, like iso), a method QML can call, and one line that reads Core's state.", diff:String.raw`     Q_PROPERTY(QString iso READ iso NOTIFY isoChanged)
 +    Q_PROPERTY(QString sharpness READ sharpness NOTIFY sharpnessChanged)
+     QString iso() const;
++    QString sharpness() const { return m_sharpness; }
      Q_INVOKABLE bool applyIso(const QString &displayValue);
 +    Q_INVOKABLE bool applySharpness(const QString &value);
+     void isoChanged();
++    void sharpnessChanged();
+     void setIso(const QString &value);
++    void setSharpness(const QString &value);
+     QString m_iso = QStringLiteral("800");
++    QString m_sharpness;
 
 +bool ApertarControlBridge::applySharpness(const QString &value)
 +{
@@ -703,6 +718,14 @@ const RECIPES = [
 +        return false;
 +    setSharpness(value);
 +    return true;
++}
+
++void ApertarControlBridge::setSharpness(const QString &value)
++{
++    if (m_sharpness == value)
++        return;
++    m_sharpness = value;
++    emit sharpnessChanged();
 +}
 
  // in applyCoreState, next to setIso(…):
@@ -719,7 +742,7 @@ const RECIPES = [
  // settingsBody (copy 1) and buildWebStateJson (copy 3):
          << ",\"iso\":" << settings.iso
 +        << ",\"sharpness\":" << settings.sharpness`},
-    {node:"CAM", file:"include/apertar/core/Types.hpp + src/camera/CameraController.cpp", note:"The field, a setter like setIso, the libcamera control, copy 2 of the state, and saving it.", diff:String.raw`     uint32_t iso = 800;
+    {node:"CAM", file:"include/apertar/core/Types.hpp + src/camera/CameraController.cpp", note:"The field, a setter like setIso, the libcamera control, copy 2 of the state, and saving and loading it.", diff:String.raw`     uint32_t iso = 800;
 +    float sharpness = 1.0f;
 
 +bool CameraController::setSharpness(float value)
@@ -738,36 +761,54 @@ const RECIPES = [
          << ",\"iso\":" << settings.iso
 +        << ",\"sharpness\":" << settings.sharpness
 
- // writeCaptureSettings, and the matching reader below it:
+ // loadPersistedCaptureSettings (the reader, above the writer):
+             else if (key == "iso")
+                 settings.iso = static_cast<uint32_t>(std::stoul(value));
++            else if (key == "sharpness")
++                settings.sharpness = std::stof(value);
+
+ // writeCaptureSettings (the writer):
      output << prefix << "iso=" << s.iso << '\n';
 +    output << prefix << "sharpness=" << s.sharpness << '\n';`},
    ]},
   {id:"r3", want:"Show it in the WebUI", forget:"Rebuild and restart Core: the page is compiled into it", example:"The sharpness from row 2, as a badge with a picker",
    steps:[
-    {node:"WEBPAGE", fork:true, file:"src/web/WebControlPage.cpp", note:"Three places in the one big string: the element, the render of each poll, and the command.", diff:String.raw` <!-- the page HTML: next to the ISO badge -->
+    {node:"WEBPAGE", fork:true, file:"src/web/WebControlPage.cpp", note:"Four places in the one big string: the badge, the picker element, the render of each poll, and the picker's buildOptionButtons call that sends the command.", diff:String.raw` <!-- the page HTML: next to the ISO badge and the isoOptions picker -->
 +<span id="sharpnessBadge" class="badge"></span>
++<div class="pill-grid" id="sharpnessOptions"></div>
 
  // renderSnapshot: runs after every 1 s poll
        setText("isoBadge", "ISO " + isoLabel);
 +      setText("sharpnessBadge", "Sharp " + snapshot.sharpness);
 
- // the option click
-       await sendCommand({ cmd: "set_iso", value: Number(value) });
-+      await sendCommand({ cmd: "set_sharpness", value: Number(value) });`, up:{diff:String.raw` <!-- the page HTML: next to the ISO badge -->
+ // the picker, next to buildOptionButtons("isoOptions", ...) in renderSnapshot
++      buildOptionButtons("sharpnessOptions", ["0", "1", "2", "4"], String(snapshot.sharpness), async (value) => {
++        try {
++          await sendCommand({ cmd: "set_sharpness", value: Number(value) });
++        } catch (error) {
++          showToast(error.message, true);
++        }
++      });`, up:{diff:String.raw` <!-- the page HTML: next to the ISO badge and the isoOptions picker -->
 +<span id="sharpnessBadge" class="badge"></span>
++<div class="pill-grid" id="sharpnessOptions"></div>
 
  // renderSnapshot: runs after every 1 s poll
-      setText("isoBadge", snapshot.iso_auto ? "ISO Auto" : ("ISO " + isoLabel));
+       setText("isoBadge", snapshot.iso_auto ? "ISO Auto" : ("ISO " + isoLabel));
 +      setText("sharpnessBadge", "Sharp " + snapshot.sharpness);
 
- // the option click
-       await sendCommand({ cmd: "set_iso", value: Number(value) });
-+      await sendCommand({ cmd: "set_sharpness", value: Number(value) });`}},
+ // the picker, next to buildOptionButtons("isoOptions", ...) in renderSnapshot
++      buildOptionButtons("sharpnessOptions", ["0", "1", "2", "4"], String(snapshot.sharpness), async (value) => {
++        try {
++          await sendCommand({ cmd: "set_sharpness", value: Number(value) });
++        } catch (error) {
++          showToast(error.message, true);
++        }
++      });`}},
     {node:"HUB", file:"src/ApertarCoreApp.cpp", note:"The poll only sees fields that buildWebStateJson writes (copy 3).", diff:String.raw`  // buildWebStateJson
          << ",\"iso\":" << settings.iso
 +        << ",\"sharpness\":" << settings.sharpness`},
    ]},
-  {id:"r4", want:"Map a button or encoder to it", forget:"ActionCatalog.hpp is fork-only (upstream: each *Input.cpp). On the fork a saved hardware file applies without a Core restart; upstream needs one", up:{forget:"A new action name goes into all three *Input.cpp files. The hardware file is read once at start: restart Core"}, example:"An encoder that steps the sharpness",
+  {id:"r4", want:"Map a button or encoder to it", forget:"ActionCatalog.hpp is fork-only (upstream: each *Input.cpp). On the fork a saved hardware file applies without a Core restart; upstream needs one", up:{forget:"Aliases for a new action (sharp_plus) go into all three *Input.cpp files; the name itself only needs the hub. The hardware file is read once at start: restart Core"}, example:"An encoder that steps the sharpness",
    steps:[
     {node:"BTN", file:"~/apertar-hardware.conf", note:"For an action that exists (iso_up, shutter_up, record_toggle…) this is the only change.", diff:String.raw` [neorotary4]
  enabled=true
@@ -776,7 +817,7 @@ const RECIPES = [
 +encoder1_ccw=sharpness_down`},
     {node:"HWIN", fork:true, file:"src/hardware/ActionCatalog.hpp", note:"A new action name goes in the one list every input class reads (name, group, label, aliases).", diff:String.raw`     {"iso_up", "ISO", "ISO up", "iso_up,iso_next,iso_plus"},
 +    {"sharpness_up", "Image", "Sharpness up", "sharpness_up,sharp_plus"},
-+    {"sharpness_down", "Image", "Sharpness down", "sharpness_down,sharp_minus"},`, up:{file:"src/hardware/GpioInput.cpp, NeoRotary4Input.cpp, Pcf8574Input.cpp", note:"Upstream keeps the action names in each input class: add the new names to normalizeSingleAction in all three files.", diff:String.raw`     if (action == "iso_up" || action == "iso_next" || action == "iso_plus")
++    {"sharpness_down", "Image", "Sharpness down", "sharpness_down,sharp_minus"},`, up:{file:"src/hardware/GpioInput.cpp, NeoRotary4Input.cpp, Pcf8574Input.cpp", note:"Upstream keeps the aliases in each input class: add them to normalizeSingleAction in all three files. A name with no aliases passes through as is.", diff:String.raw`     if (action == "iso_up" || action == "iso_next" || action == "iso_plus")
          return "iso_up";
 +    if (action == "sharpness_up" || action == "sharp_plus")
 +        return "sharpness_up";
@@ -789,44 +830,65 @@ const RECIPES = [
 +        …
 +    }`},
    ]},
-  {id:"r5", want:"Change how the preview looks", forget:"Aids live in UI.conf, not in Core's state", example:"A new aid: a centre cross",
+  {id:"r5", want:"Change how the preview looks", forget:"Aids live in UI.conf, not in Core's state", example:"A new aid: invert the preview",
    steps:[
     {node:"QML", file:"qml/CameraPage.qml", note:"Bind the preview item to the new setting, like zebra.", diff:String.raw`             zebraEnabled: root.settingsState ? root.settingsState.zebraEnabled : false
-+            centerCrossEnabled: root.settingsState ? root.settingsState.centerCrossEnabled : false`},
-    {node:"UICONF", file:"src/SettingsBridge.hpp / .cpp → UI.conf", note:"A property stored in UI.conf, read at start and again when the file changes (so a WebUI change shows up).", diff:String.raw`     Q_PROPERTY(bool zebraEnabled READ zebraEnabled WRITE setZebraEnabled NOTIFY zebraEnabledChanged)
-+    Q_PROPERTY(bool centerCrossEnabled READ centerCrossEnabled WRITE setCenterCrossEnabled NOTIFY centerCrossEnabledChanged)
++            invertPreviewEnabled: root.settingsState ? root.settingsState.invertPreviewEnabled : false`},
+    {node:"UICONF", file:"src/SettingsBridge.hpp / .cpp → UI.conf", note:"A property stored in UI.conf, read at start and again when the file changes (so a WebUI change shows up). Copy zebraEnabled's getter, setter, signal and member; add it to serializeCurrentSettings and the preset apply too.", diff:String.raw`     Q_PROPERTY(bool zebraEnabled READ zebraEnabled WRITE setZebraEnabled NOTIFY zebraEnabledChanged)
++    Q_PROPERTY(bool invertPreviewEnabled READ invertPreviewEnabled WRITE setInvertPreviewEnabled NOTIFY invertPreviewEnabledChanged)
+     …  getter, signal, member: copy zebra's
+
+ // setter (copy setZebraEnabled): this line writes UI.conf
+     if (!m_externalSettingsSyncing) m_settings.setValue("zebraEnabled", value);
++    if (!m_externalSettingsSyncing) m_settings.setValue("invertPreviewEnabled", value);
 
  // constructor
      m_zebraEnabled = m_settings.value("zebraEnabled", false).toBool();
-+    m_centerCrossEnabled = m_settings.value("centerCrossEnabled", false).toBool();
++    m_invertPreviewEnabled = m_settings.value("invertPreviewEnabled", false).toBool();
 
  // pollExternalSettings
      setZebraEnabled(m_settings.value(QStringLiteral("zebraEnabled"), m_zebraEnabled).toBool());
-+    setCenterCrossEnabled(m_settings.value(QStringLiteral("centerCrossEnabled"), m_centerCrossEnabled).toBool());`},
-    {node:"RENDER", file:"src/CameraPreviewItem.hpp + src/PreviewWindowRenderer.cpp", note:"The item carries the flag to the renderer, which passes it to the shader as a uniform.", diff:String.raw`     Q_PROPERTY(bool zebraEnabled READ zebraEnabled WRITE setZebraEnabled NOTIFY zebraEnabledChanged)
-+    Q_PROPERTY(bool centerCrossEnabled READ centerCrossEnabled WRITE setCenterCrossEnabled NOTIFY centerCrossEnabledChanged)
++    setInvertPreviewEnabled(m_settings.value(QStringLiteral("invertPreviewEnabled"), m_invertPreviewEnabled).toBool());`},
+    {node:"RENDER", file:"src/CameraPreviewItem.hpp / .cpp + src/PreviewWindowRenderer.hpp / .cpp", note:"The item carries the flag into the renderer's state; the renderer uploads it as a uniform. Add it to needsProcessing and the cache compare too, or the shader is skipped.", diff:String.raw`     Q_PROPERTY(bool zebraEnabled READ zebraEnabled WRITE setZebraEnabled NOTIFY zebraEnabledChanged)
++    Q_PROPERTY(bool invertPreviewEnabled READ invertPreviewEnabled WRITE setInvertPreviewEnabled NOTIFY invertPreviewEnabledChanged)
+     …  getter, setter, signal, member: copy zebra's
+
+ // PreviewWindowRenderer.hpp, PreviewCacheState
+         bool zebraEnabled = false;
++        bool invertPreviewEnabled = false;
+
+ // currentPreviewState
+         state.zebraEnabled = m_item->zebraEnabled();
++        state.invertPreviewEnabled = m_item->invertPreviewEnabled();
 
  // fragment shader
      uniform int uZebraEnabled;
-+    uniform int uCenterCross;
-+    // if (uCenterCross == 1 && the pixel is on the centre lines) colour = white;
++    uniform int uInvertPreview;
++    // if (uInvertPreview == 1) colour.rgb = 1.0 - colour.rgb;
 
- // after linking the program
+ // after linking the program (and the 2D and planar ones)
          m_uZebraEnabledLoc = glGetUniformLocation(m_processProgram, "uZebraEnabled");
-+        m_uCenterCrossLoc = glGetUniformLocation(m_processProgram, "uCenterCross");`},
++        m_uInvertPreviewLoc = glGetUniformLocation(m_processProgram, "uInvertPreview");
+
+ // drawing (both paths)
+     const bool needsProcessing = state.zebraEnabled
++                                 || state.invertPreviewEnabled
+     …
+         glUniform1i(planarTexture ? m_uZebraEnabledPlanarLoc : (cpuTexture ? m_uZebraEnabled2DLoc : m_uZebraEnabledLoc), state.zebraEnabled ? 1 : 0);
++        glUniform1i(planarTexture ? m_uInvertPreviewPlanarLoc : (cpuTexture ? m_uInvertPreview2DLoc : m_uInvertPreviewLoc), state.invertPreviewEnabled ? 1 : 0);`},
    ]},
-  {id:"r6", want:"Change what is written to disk", forget:"Never build while a take runs", example:"An extra DNG tag: ImageDescription (270)",
+  {id:"r6", want:"Change what is written to disk", forget:"Never build while a take runs", example:"An extra DNG tag: Artist (315)",
    steps:[
     {node:"CAM", file:"src/camera/CameraController.cpp", note:"The per-clip DNG metadata is filled here.", diff:String.raw`     out.uniqueCameraModel = uniqueCameraModelForSensor(sensorFamily, dngModel);
-+    out.imageDescription = "Apertar";`},
-    {node:"RECS", file:"src/cdng/CdngEncoder.hpp / .cpp", note:"A field, and the tag in the IFD. TIFF wants tags in number order: 270 goes before 272.", diff:String.raw`         std::string uniqueCameraModel = "Blackmagic Micro Cinema Camera";
-+        std::string imageDescription;
++    out.artist = "Apertar";`},
+    {node:"RECS", file:"src/cdng/CdngEncoder.hpp / .cpp", note:"A field, and the tag in the IFD. The IfdBuilder sorts tags by number itself, so the order of the appendAscii lines does not matter.", diff:String.raw`         std::string uniqueCameraModel = "Blackmagic Micro Cinema Camera";
++        std::string artist;
 
-+        if (!metadata.imageDescription.empty())
-+            appendAscii(ifd, 270, metadata.imageDescription);
          if (!metadata.model.empty())
-             appendAscii(ifd, 272, metadata.model);`},
-    {node:"DISK", same:true, file:"/media/RAW", note:"Nothing to change. Check a frame from the Mac after a take:", diff:String.raw`exiftool -ImageDescription /Volumes/…/cDNG_…/…_000000001.dng`},
+             appendAscii(ifd, 272, metadata.model);
++        if (!metadata.artist.empty())
++            appendAscii(ifd, 315, metadata.artist);`},
+    {node:"DISK", same:true, file:"/media/RAW", note:"Nothing to change. Check a frame from the Mac after a take:", diff:String.raw`exiftool -Artist /Volumes/…/cDNG_…/…_000000001.dng`},
    ]},
 ];
 const nodeOrder = id => N[id].y*10000 + N[id].x;
@@ -913,7 +975,7 @@ const SRC = {
   official: {line:'Showing <b>official Apertar</b> (Apertar-Studio, branch <code>main</code>).',
     foot:'Code is from official Apertar, branch <code>main</code>: <a href="https://github.com/Apertar-Studio/Apertar-Core">Apertar-Core</a> (<code>35dbe67</code>), <a href="https://github.com/Apertar-Studio/Apertar-UI">Apertar-UI</a> (<code>43888e5</code>) and the <a href="https://github.com/Apertar-Studio/imx585-v4l2-driver">imx585 driver</a>.'},
   fork: {line:'Showing <b>Tiramisioux\'s dev fork</b>, branch <code>cinemate-port</code>. Pink <span class="forktag" style="margin:0">fork</span> = Tiramisioux dev-fork only.',
-    foot:'Code is from Tiramisioux\'s fork of Apertar, branch <code>cinemate-port</code>: <a href="https://github.com/Tiramisioux/Apertar-Core/tree/cinemate-port">Apertar-Core</a> (<code>f4a1393</code>), <a href="https://github.com/Tiramisioux/Apertar-UI/tree/cinemate-port">Apertar-UI</a> (<code>7029db1</code>) and the <a href="https://github.com/Tiramisioux/imx585-v4l2-driver/tree/apertar">imx585 driver</a> (branch <code>apertar</code>). Official Apertar is <a href="https://github.com/Apertar-Studio">Apertar-Studio</a>.'},
+    foot:'Code is from Tiramisioux\'s fork of Apertar, branch <code>cinemate-port</code>: <a href="https://github.com/Tiramisioux/Apertar-Core/tree/cinemate-port">Apertar-Core</a> (<code>01f170c</code>), <a href="https://github.com/Tiramisioux/Apertar-UI/tree/cinemate-port">Apertar-UI</a> (<code>7ea9afc</code>) and the <a href="https://github.com/Tiramisioux/imx585-v4l2-driver/tree/cinemate-port">imx585 driver</a> (branch <code>cinemate-port</code>). Official Apertar is <a href="https://github.com/Apertar-Studio">Apertar-Studio</a>.'},
 };
 const FOOT_TAIL=' JSON is shortened with <code>…</code>. Paths are as on the camera (Raspberry Pi 5, user <code>pi</code>). Source: <a href="https://github.com/Tiramisioux/apertar-coding-map">github.com/Tiramisioux/apertar-coding-map</a>.';
 function setMode(m){
