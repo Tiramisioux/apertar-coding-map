@@ -944,6 +944,51 @@ const RECIPES = [
 +            appendAscii(ifd, 315, metadata.artist);`},
     {node:"DISK", same:true, file:"/media/RAW", note:"Nothing to change. Check a frame from the Mac after a take:", diff:String.raw`exiftool -Artist /Volumes/…/cDNG_…/…_000000001.dng`},
    ]},
+  {id:"r7", forkOnly:true, want:"Add a lever to Dynamic resolution's table", forget:"A default Context must shift nothing: give the field the table's reference value. A lever the camera owns (TDN, phase lock, Log) is read in limitContextLocked instead, and its setter calls ladderRewriteLocked, as setFpsPhaseLock does. tools/sustained_fps_test.cpp pins every row and lever: update it in the same commit", example:"Gyro recording on costs a back-end mode 1 fps (an invented number, only to show the places)",
+   steps:[
+    {node:"HUB", file:"src/ApertarCoreApp.cpp", note:"refreshLadderContext fills what the application owns: storage, aids, audio, split. A UI.conf switch calls it after every toggle (handleUiToggle), so a new field only needs this line.", diff:String.raw`     context.aidsOn = ui.focusPeakingEnabled || ui.zebraEnabled;
+     context.audioOn = ui.recordAudioEnabled;
++    context.gyroOn = ui.recordGyroEnabled;`},
+    {node:"CAM", same:true, file:"src/camera/CameraController.cpp", note:"Nothing to change for a lever the application owns: setLadderContext applies the mode again when the context changed. A lever the camera owns is read here.", diff:String.raw`     context.lock = settings.fpsPhaseLock;
+     context.log = settings.cdngLog != CdngLog::Off;`},
+    {node:"LIMITS", file:"src/camera/SustainedFps.hpp", note:"The field, with the table's reference value as default, and the rule in capFor. Set cap.lever so the limit line names it.", diff:String.raw`     bool audioOn = true;
++    bool gyroOn = false;            // gyro recording: the reference takes ran without it
+ …
+         if (cap.row.group == Group::BackEnd) {
+             if (context.lock) {
+                 limit -= 1.0;
+                 cap.lever = "phase lock";
+             }
++            if (context.gyroOn) {
++                limit -= 1.0;
++                cap.lever = "gyro";
++            }`},
+   ]},
+  {id:"r8", forkOnly:true, want:"Add a new hardware input class", forget:"Three lists name the sections: kSections (the file check), ControlsModel.hpp (the rows the Controls page shows) and hardwareGroupOf (what the controls worker restarts after a save). Put the action names in ActionCatalog.hpp, not in the class", example:"An MCP23017 chip with eight buttons on I2C",
+   steps:[
+    {node:"BTN", file:"~/apertar-hardware.conf", note:"The section the class reads: bus, address and one key per control.", diff:String.raw`+[mcp23017]
++enabled=true
++bus=1
++address=0x20
++button0=iso_up`},
+    {node:"HWIN", file:"src/hardware/ (Mcp23017Input.hpp, Mcp23017Input.cpp, HardwareConfigText.hpp, ControlsModel.hpp)", note:"A thread that polls the chip and calls back with an action name: copy NeoRotary4Input.hpp and .cpp, which take their names from ActionCatalog.hpp. Then tell the file check and the Controls page the section exists.", diff:String.raw`// HardwareConfigText.hpp, kSections
+     {"neorotary4", "neorotary4,neo_rotary4,neo_rotary_4", true, ValueRule::FirstMark, 1, true, false, true},
++    {"mcp23017", "mcp23017", true, ValueRule::FirstMark, 1, true, false, true},
+
+// ControlsModel.hpp, the sections the page lists
+     for (const char *name : {"gpio_buttons", "gpio_switches", "neorotary4", "pcf8574", "gpio_encoders", "grove_analog", "trigger_output",
++                             "mcp23017",
+                              "recording_indicator"}) {`},
+    {node:"HUB", file:"src/ApertarCoreApp.cpp / .hpp", note:"Build it with the others, start it where neoRotary4Input_ starts, stop it where that stops, and give its section a driver group so a save restarts it alone.", diff:String.raw`     , neoRotary4Input_([this](const std::string &action) { return handleHardwareInputAction(action); },
+                        [this](const std::string &action) { handleHardwareInputAction(action, false); })
++    , mcp23017Input_([this](const std::string &action) { return handleHardwareInputAction(action); })
+ …
+// hardwareGroupOf
+     if (section == "neorotary4")
+         return "NeoRotary 4";
++    if (section == "mcp23017")
++        return "MCP23017";`},
+   ]},
 ];
 const nodeOrder = id => N[id].y*10000 + N[id].x;
 for (const r of RECIPES) r.steps.sort((a,b)=>nodeOrder(a.node)-nodeOrder(b.node));
